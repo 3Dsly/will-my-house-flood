@@ -42,36 +42,47 @@ img { max-width: 100%; }
   z-index: 0;          /* own stacking context — traps Cesium's own UI below the panels */
 }
 
-/* --- 1b. Cesium attribution: detached from the widget via creditContainer,
-   parked clear of both panels so the ion ToS credit is always visible. */
+/* --- 1b. Cesium attribution: detached from the widget via creditContainer.
+   Cesium injects its own <a>/text in here; these rules just make it read as a
+   normal one-line (or tidy 2-line) label parked clear of #controls so the ion
+   ToS credit is always visible. */
 #credit {
   position: fixed;
   z-index: 3;                 /* above the globe, below the panels */
-  right: 8px;
-  bottom: 6px;
-  max-width: min(60vw, 320px);
-  padding: 2px 8px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.38);
-  color: #dfe8ef;
+  right: max(var(--gutter), env(safe-area-inset-right));
+  bottom: max(var(--gutter), env(safe-area-inset-bottom));
+  width: auto;
+  max-width: min(70vw, 360px);
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #c9d3db;
   font-size: 11px;
   line-height: 1.4;
+  white-space: nowrap;        /* one line on wide screens */
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   pointer-events: auto;
 }
-#credit a { color: #cfe4f5; }
+#credit a {
+  color: #c9d3db;
+  text-decoration: none;
+}
+#credit a:hover { text-decoration: underline; }
 #credit img { vertical-align: middle; }
 
 /* Narrow: #controls goes full-width at the bottom, so move the credit up to
-   the empty right side of the search-bar row (its h1 is short/left-aligned). */
+   the empty right side of the search-bar row (its h1 is short/left-aligned).
+   Wrapping to 2 lines here is fine. */
 @media (max-width: 520px) {
   #credit {
     z-index: 6;              /* above #searchBar (5) */
     bottom: auto;
     right: calc(max(var(--gutter), env(safe-area-inset-right)) + 4px);
-    top: calc(max(var(--gutter), env(safe-area-inset-top)) + 6px);
-    max-width: 46vw;
-    font-size: 10px;
+    top: calc(env(safe-area-inset-top, 0px) + 4px);
+    max-width: 55vw;
+    white-space: normal;
   }
 }
 
