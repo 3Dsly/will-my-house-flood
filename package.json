@@ -1,0 +1,12 @@
+{
+  "name": "will-my-house-flood",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Type your address, see it under a risen sea. Companion app for the 'When All The Ice Melts' video.",
+  "scripts": {
+    "test": "node --test",
+    "serve": "python -m http.server 8080"
+  },
+  "license": "MIT"
+}

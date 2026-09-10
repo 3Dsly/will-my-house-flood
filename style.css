@@ -1,0 +1,14 @@
+:root { color-scheme: dark; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #0b1622; }
+#cesium { position: fixed; inset: 0; }
+.panel { position: fixed; z-index: 2; background: rgba(12,22,34,.82); color: #eaf2f8;
+  backdrop-filter: blur(6px); padding: 12px 14px; border-radius: 10px; }
+#searchBar { top: 12px; left: 12px; right: 12px; max-width: 460px; }
+#controls  { bottom: 12px; left: 12px; right: 12px; max-width: 460px; }
+#searchBar h1, .about h2 { margin: 0 0 8px; font-size: 1rem; }
+input[type=text] { width: 100%; padding: 8px; margin-bottom: 6px; }
+.readout { margin: 8px 0 0; font-size: .95rem; line-height: 1.35; }
+.error { top: 50%; left: 50%; transform: translate(-50%,-50%); max-width: 340px; text-align: center; }
+.about { top: 50%; left: 50%; transform: translate(-50%,-50%); max-width: 380px; }
+[hidden] { display: none !important; }

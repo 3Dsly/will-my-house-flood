@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Will My House Flood?</title>
+  <meta name="description" content="Type your address and see it under a risen sea. Companion to the film 'When All The Ice Melts'.">
+  <meta property="og:title" content="Will My House Flood?">
+  <meta property="og:description" content="Type your address and see it under a risen sea.">
+  <meta property="og:image" content="assets/og-image.png">
+  <link rel="icon" href="assets/favicon.png">
+  <script>window.CESIUM_BASE_URL = "https://cdnjs.cloudflare.com/ajax/libs/cesium/1.124.0/";</script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cesium/1.124.0/Widgets/widgets.css" rel="stylesheet">
+  <link href="style.css" rel="stylesheet">
+</head>
+<body>
+  <div id="cesium" role="application" aria-label="3D globe"></div>
+
+  <div id="tokenError" class="panel error" hidden>
+    <h1>Set a Cesium ion token</h1>
+    <p>This site needs a free Cesium ion token in <code>config.js</code>.
+       See the <a href="https://github.com/3Dsly/will-my-house-flood#readme">README</a>.</p>
+  </div>
+
+  <header id="searchBar" class="panel">
+    <h1>Will my house flood?</h1>
+    <form id="searchForm">
+      <input id="addressInput" type="text" placeholder="Enter an address or place" autocomplete="off" enterkeyhint="search">
+      <button id="searchBtn" type="submit">Search</button>
+      <button id="locateBtn" type="button">Use my location</button>
+    </form>
+    <p id="statusLine" class="status" aria-live="polite"></p>
+  </header>
+
+  <footer id="controls" class="panel">
+    <div class="presets" role="group" aria-label="Rise presets">
+      <button type="button" data-rise="1">1 m</button>
+      <button type="button" data-rise="10">10 m</button>
+      <button type="button" data-rise="30">30 m</button>
+      <button type="button" data-rise="70">70 m</button>
+    </div>
+    <label class="slider">
+      Sea-level rise: <output id="riseOut">70</output> m
+      <input id="riseInput" type="range" min="0" max="70" step="1" value="70">
+    </label>
+    <p id="readout" class="readout" aria-live="polite">Search a place to begin.</p>
+    <button id="aboutBtn" type="button" class="link">About &amp; limitations</button>
+  </footer>
+
+  <div id="aboutPanel" class="panel about" hidden>
+    <button id="aboutClose" type="button" class="close" aria-label="Close">&times;</button>
+    <h2>About this map</h2>
+    <p>This is a <strong>&ldquo;bathtub&rdquo; model</strong>: it fills every point of
+       land that sits below the line you choose, whether or not the ocean could
+       physically reach it. It is an approximation for illustration, not a survey
+       or a flood-risk assessment.</p>
+    <p>+70&nbsp;m is the sea level if all land ice on Earth melted. It says nothing
+       about <em>when</em> &mdash; realistic rise this century is under about a metre.</p>
+    <p><a id="videoLink" href="#">Watch the video</a> &middot;
+       <a href="https://github.com/3Dsly/will-my-house-flood">Source on GitHub</a></p>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cesium/1.124.0/Cesium.js"></script>
+  <script src="config.js"></script>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
