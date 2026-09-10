@@ -11,6 +11,7 @@ export async function geocodeAddress(viewer, query) {
   } else {
     carto = Cesium.Cartographic.fromCartesian(r.destination);
   }
+  if (!carto) return null;
   return {
     lat: Cesium.Math.toDegrees(carto.latitude),
     lon: Cesium.Math.toDegrees(carto.longitude),
