@@ -58,21 +58,27 @@ function rebuildWaterThrottled() {
 // resolves viewer.terrainProvider is an EllipsoidTerrainProvider and
 // sampleGroundElevation() returns ~0 m. Gate the first sample on the
 // provider actually switching to CesiumTerrainProvider.
+// Resolves true once the provider actually became CesiumTerrainProvider, false
+// if the 15 s timeout fired first. A timed-out run must NOT sample — the
+// EllipsoidTerrainProvider returns ~0 m, which the readout would render as
+// "-N m below sea level".
 function whenTerrainReady() {
   if (viewer.terrainProvider instanceof Cesium.CesiumTerrainProvider) {
-    return Promise.resolve();
+    return Promise.resolve(true);
   }
   return new Promise((resolve) => {
     let settled = false;
-    const finish = () => {
+    const finish = (ready) => {
       if (settled) return;
       settled = true;
       remove();
       clearTimeout(timer);
-      resolve();
+      resolve(ready);
     };
-    const remove = viewer.scene.terrainProviderChanged.addEventListener(finish);
-    const timer = setTimeout(finish, 15000);
+    const remove = viewer.scene.terrainProviderChanged.addEventListener(
+      () => finish(viewer.terrainProvider instanceof Cesium.CesiumTerrainProvider)
+    );
+    const timer = setTimeout(() => finish(false), 15000);
   });
 }
 
@@ -100,24 +106,34 @@ async function runApplyLocation(lat, lon, name) {
   state.lat = lat;
   state.lon = lon;
   state.placeName = name;
+  // The elevation is unknown until the fly-to + terrain sample finish (~2 s+).
+  // Clear the stale value and say so, otherwise a slider drag in that window
+  // renders "<newPlace> is about <oldElevation> m..." — confidently wrong.
+  state.groundMslM = null;
+  ui.setReadout("Measuring elevation…");
 
   try {
     await flyTo(lon, lat);
     if (seq !== applySeq) return;
 
-    await whenTerrainReady();
+    const terrainReady = await whenTerrainReady();
     if (seq !== applySeq) return;
 
     // Cesium World Terrain samples are WGS84-ELLIPSOIDAL; convert to MSL by
     // subtracting the local geoid undulation N before the readout uses them.
-    let rawEllip = await sampleGroundElevation(viewer, lat, lon);
-    if (seq !== applySeq) return;
-    if (rawEllip === null) {
-      // first sample can miss before detailed tiles arrive — retry once
-      await delay(1500);
-      if (seq !== applySeq) return;
+    // A timed-out terrain load leaves the EllipsoidTerrainProvider in place —
+    // skip the sample entirely so groundMslM stays null (honest "unavailable").
+    let rawEllip = null;
+    if (terrainReady) {
       rawEllip = await sampleGroundElevation(viewer, lat, lon);
       if (seq !== applySeq) return;
+      if (rawEllip === null) {
+        // first sample can miss before detailed tiles arrive — retry once
+        await delay(1500);
+        if (seq !== applySeq) return;
+        rawEllip = await sampleGroundElevation(viewer, lat, lon);
+        if (seq !== applySeq) return;
+      }
     }
 
     state.N = geoid ? geoid.undulation(lat, lon) : 0;
@@ -205,13 +221,13 @@ async function boot() {
   try {
     viewer = await createViewer("cesium", cfg.ionToken);
   } catch (err) {
-    if (err && err.message === "missing-ion-token") {
-      document.getElementById("tokenError").hidden = false;
-      document.getElementById("searchBar").hidden = true;
-      document.getElementById("controls").hidden = true;
-    } else {
-      console.error(err);
-    }
+    // Any boot failure — missing/placeholder token, a restricted token with the
+    // wrong domain allowlist, a 401/403/quota on ion imagery — shows the same
+    // card. Leaving #searchBar/#controls up would be a silent dead page.
+    console.error(err);
+    document.getElementById("tokenError").hidden = false;
+    document.getElementById("searchBar").hidden = true;
+    document.getElementById("controls").hidden = true;
     return;
   }
 
@@ -241,6 +257,10 @@ async function boot() {
     onRiseChange: handleRiseChange
   });
   ui.setRise(state.rise);
+
+  if (!geoid) {
+    ui.setStatus("Using approximate elevations — geoid data didn't load.");
+  }
 
   if (shared) {
     applyLocation(shared.lat, shared.lon, "Shared location");

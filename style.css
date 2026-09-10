@@ -71,6 +71,9 @@ img { max-width: 100%; }
 }
 #credit a:hover { text-decoration: underline; }
 #credit img { vertical-align: middle; }
+/* Cesium injects .cesium-widget-credits as position:absolute (widgets.css), so it
+   leaves flow and #credit collapses + clips it. Pull it back into normal flow. */
+#credit .cesium-widget-credits { position: static; display: inline; }
 
 /* Narrow: #controls goes full-width at the bottom, so move the credit up to
    the empty right side of the search-bar row (its h1 is short/left-aligned).
