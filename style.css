@@ -1,14 +1,293 @@
-:root { color-scheme: dark; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+/* Will My House Flood? — responsive overlay UI + About panel
+   Plain CSS, no framework, system font stack, dark scheme. */
+
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --panel-bg: rgba(11, 20, 32, 0.82);
+  --panel-border: rgba(255, 255, 255, 0.14);
+  --text: #eaf2f8;        /* body text — ~15:1 on the panel ground */
+  --text-dim: #c8d4de;    /* secondary text — still > 7:1, AA at small sizes */
+  --link: #8fc6f0;
+  --field-bg: rgba(255, 255, 255, 0.06);
+  --field-border: rgba(255, 255, 255, 0.28);
+  --btn-bg: rgba(255, 255, 255, 0.08);
+  --btn-bg-hover: rgba(255, 255, 255, 0.16);
+  --accent: #4aa3df;
+  --accent-ink: #06131f;  /* dark ink on the accent fill — > 8:1 */
+
+  --gutter: 12px;
+}
+
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; background: #0b1622; }
-#cesium { position: fixed; inset: 0; }
-.panel { position: fixed; z-index: 2; background: rgba(12,22,34,.82); color: #eaf2f8;
-  backdrop-filter: blur(6px); padding: 12px 14px; border-radius: 10px; }
-#searchBar { top: 12px; left: 12px; right: 12px; max-width: 460px; }
-#controls  { bottom: 12px; left: 12px; right: 12px; max-width: 460px; }
-#searchBar h1, .about h2 { margin: 0 0 8px; font-size: 1rem; }
-input[type=text] { width: 100%; padding: 8px; margin-bottom: 6px; }
-.readout { margin: 8px 0 0; font-size: .95rem; line-height: 1.35; }
-.error { top: 50%; left: 50%; transform: translate(-50%,-50%); max-width: 340px; text-align: center; }
-.about { top: 50%; left: 50%; transform: translate(-50%,-50%); max-width: 380px; }
+
+html, body { margin: 0; height: 100%; }
+
+body {
+  background: #0b1622;
+  color: var(--text);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+img { max-width: 100%; }
+
 [hidden] { display: none !important; }
+
+/* --- 1. Globe: fixed, full viewport, behind every panel --------------- */
+#cesium {
+  position: fixed;
+  inset: 0;
+  z-index: 0;          /* own stacking context — traps Cesium's own UI below the panels */
+}
+
+/* --- Shared panel chrome -------------------------------------------------
+   Translucent dark card so the Cesium credit line behind #controls
+   stays legible; blur + AA-contrast body text. */
+.panel {
+  background: var(--panel-bg);
+  color: var(--text);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+/* --- 2. Search bar (top) + controls (bottom) --------------------------- */
+#searchBar,
+#controls {
+  position: fixed;
+  z-index: 5;
+  left: max(var(--gutter), env(safe-area-inset-left));
+  right: max(var(--gutter), env(safe-area-inset-right));
+  max-width: 460px;              /* left-aligned card on wide screens */
+}
+
+#searchBar { top: max(var(--gutter), env(safe-area-inset-top)); }
+#controls  { bottom: max(var(--gutter), env(safe-area-inset-bottom)); }
+
+/* Below ~520px: span the full width minus a 12px gutter each side */
+@media (max-width: 520px) {
+  #searchBar,
+  #controls { max-width: none; }
+
+  .panel { padding: 10px 12px; }
+  #searchBar h1 { font-size: 1rem; }
+}
+
+/* --- Search bar internals -------------------------------------------- */
+#searchBar h1 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+#searchForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#addressInput {
+  flex: 1 1 100%;               /* full row, buttons drop below */
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--field-border);
+  border-radius: 8px;
+  background: var(--field-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;             /* keeps iOS from zooming on focus */
+}
+#addressInput::placeholder { color: #93a4b3; }
+
+#searchForm button { flex: 1 1 auto; }
+
+#statusLine.status {
+  margin: 8px 0 0;
+  min-height: 1.1em;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: var(--text-dim);
+}
+
+/* --- Buttons (search / locate / presets) ---------------------------- */
+#searchForm button,
+.presets button {
+  font: inherit;
+  min-height: 44px;            /* touch target */
+  padding: 8px 14px;
+  border: 1px solid var(--field-border);
+  border-radius: 8px;
+  background: var(--btn-bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+#searchForm button:hover,
+.presets button:hover { background: var(--btn-bg-hover); }
+
+/* --- 4. Controls: presets + slider + readout ----------------------- */
+.presets {
+  display: flex;
+  flex-wrap: wrap;             /* wrap on narrow screens */
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.presets button {
+  flex: 0 0 auto;
+  min-width: 44px;             /* >= 44 x 44 */
+}
+.presets button[aria-pressed="true"] {   /* active preset, visibly marked */
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.slider {
+  display: block;
+  margin: 12px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  color: var(--text);
+}
+#riseOut {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+#riseInput {
+  display: block;
+  width: 100%;                 /* full width */
+  height: 44px;                /* >= 44px hit area */
+  margin-top: 8px;
+  background: transparent;
+  accent-color: var(--accent);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* --- 5. Readout ---------------------------------------------------- */
+.readout {
+  margin: 10px 0 0;
+  font-size: 0.98rem;          /* >= 0.95rem */
+  line-height: 1.4;            /* >= 1.35 */
+  color: #e2ecf3;
+}
+
+/* --- 7. "About & limitations" rendered as a plain text link ------- */
+.link {
+  display: inline-block;
+  margin: 10px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.link:hover { color: #b3d9f5; }
+
+/* --- 6. About panel: centered modal, dim page behind ------------- */
+#aboutPanel.about {
+  position: fixed;
+  z-index: 10;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(380px, calc(100% - 32px));
+  max-width: 380px;
+  max-height: calc(100% - 32px);
+  overflow-y: auto;                       /* scroll when it overflows the viewport */
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.55);   /* dims everything behind it */
+}
+
+#aboutPanel h2 {
+  margin: 0 0 10px;
+  padding-right: 32px;          /* clear of the close button */
+  font-size: 1.1rem;
+  line-height: 1.3;
+}
+#aboutPanel p {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #e6eef5;
+}
+#aboutPanel p:last-child { margin-bottom: 0; }
+#aboutPanel a { color: var(--link); }
+
+.close {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font-size: 1.7rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.close:hover { background: rgba(255, 255, 255, 0.12); }
+
+/* --- 8. Token-error card: centered ------------------------------- */
+#tokenError.error {
+  position: fixed;
+  z-index: 20;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(340px, calc(100% - 32px));
+  text-align: center;
+}
+#tokenError h1 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  line-height: 1.3;
+}
+#tokenError p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #e6eef5;
+}
+#tokenError a { color: var(--link); }
+#tokenError code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* --- Focus visibility ------------------------------------------- */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --- 9. Reduced motion: kill every transition / animation ------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
