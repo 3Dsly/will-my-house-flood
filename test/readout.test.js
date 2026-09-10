@@ -30,3 +30,13 @@ test("no placeName uses 'This spot'", () => {
   const s = formatReadout({ groundMslM: 10, riseM: 5 });
   assert.match(s, /^This spot/);
 });
+
+test("negative elevation reads as 'below sea level', never a minus sign", () => {
+  const nola = formatReadout({ groundMslM: -2, riseM: 70, placeName: "New Orleans" });
+  assert.match(nola, /2 m below sea level/);
+  assert.doesNotMatch(nola, /-/);
+
+  const badwater = formatReadout({ groundMslM: -85, riseM: 10 });
+  assert.match(badwater, /85 m below sea level/);
+  assert.doesNotMatch(badwater, /-/);
+});

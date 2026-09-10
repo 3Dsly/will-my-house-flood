@@ -8,6 +8,7 @@ export async function createViewer(containerId, ionToken) {
   const viewer = new Cesium.Viewer(containerId, {
     terrain: Cesium.Terrain.fromWorldTerrain(),
     baseLayer: false, // only the explicit IonImageryProvider below loads (no default world imagery on top)
+    creditContainer: document.getElementById("credit"), // move the ion attribution out from under #controls
     baseLayerPicker: false,
     geocoder: false,
     timeline: false,

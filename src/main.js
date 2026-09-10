@@ -5,7 +5,7 @@ import { geocodeAddress } from "./geocode.js";
 import { getCurrentLocation } from "./geolocate.js";
 import { sampleGroundElevation } from "./elevation.js";
 import { createGeoid } from "./geoid.js";
-import { waterEllipsoidHeight } from "./datum.js";
+import { waterEllipsoidHeight, mslElevation } from "./datum.js";
 import { createWater } from "./water.js";
 import { formatReadout } from "./readout.js";
 import { parseState, writeState } from "./urlstate.js";
@@ -24,10 +24,11 @@ const state = {
   lon: null,
   rise: 70,
   groundMslM: null, // MSL metres at (lat, lon); may stay null if unavailable
-  N: 0 // cached geoid undulation for the current point
+  N: 0, // cached geoid undulation for the current point
+  placeName: null
 };
-let placeName = null;
 let applySeq = 0; // guards against a stale applyLocation overwriting a newer one
+let warnedNoGeoid = false; // one-time warning when converting without a geoid grid
 
 // --- rAF throttles (one pending frame max) ------------------------------
 let writePending = false;
@@ -98,7 +99,7 @@ async function runApplyLocation(lat, lon, name) {
   ui.setStatus("");
   state.lat = lat;
   state.lon = lon;
-  placeName = name;
+  state.placeName = name;
 
   try {
     await flyTo(lon, lat);
@@ -107,18 +108,28 @@ async function runApplyLocation(lat, lon, name) {
     await whenTerrainReady();
     if (seq !== applySeq) return;
 
-    let groundMslM = await sampleGroundElevation(viewer, lat, lon);
+    // Cesium World Terrain samples are WGS84-ELLIPSOIDAL; convert to MSL by
+    // subtracting the local geoid undulation N before the readout uses them.
+    let rawEllip = await sampleGroundElevation(viewer, lat, lon);
     if (seq !== applySeq) return;
-    if (groundMslM === null) {
+    if (rawEllip === null) {
       // first sample can miss before detailed tiles arrive — retry once
       await delay(1500);
       if (seq !== applySeq) return;
-      groundMslM = await sampleGroundElevation(viewer, lat, lon);
+      rawEllip = await sampleGroundElevation(viewer, lat, lon);
       if (seq !== applySeq) return;
     }
-    state.groundMslM = groundMslM;
 
     state.N = geoid ? geoid.undulation(lat, lon) : 0;
+    if (!geoid && !warnedNoGeoid) {
+      warnedNoGeoid = true;
+      console.warn(
+        "geoid grid unavailable — elevation readout may be off by up to ~100 m"
+      );
+    }
+    const groundMslM =
+      rawEllip === null ? null : mslElevation(rawEllip, state.N);
+    state.groundMslM = groundMslM;
 
     water.setHeight(waterEllipsoidHeight(state.rise, state.N));
     water.show();
@@ -135,12 +146,15 @@ async function runApplyLocation(lat, lon, name) {
 // --- UI callbacks --------------------------------------------------------
 async function handleSearch(query) {
   ui.setStatus("");
+  ui.setBusy(true);
   let hit;
   try {
     hit = await geocodeAddress(viewer, query);
   } catch (err) {
     console.error(err);
     hit = null;
+  } finally {
+    ui.setBusy(false);
   }
   if (!hit) {
     ui.setStatus("Couldn't find that place — try adding a city or country.");
@@ -179,7 +193,7 @@ function handleRiseChange(rise) {
     formatReadout({
       groundMslM: state.groundMslM,
       riseM: rise,
-      placeName
+      placeName: state.placeName
     })
   );
   rebuildWaterThrottled();
@@ -219,7 +233,7 @@ async function boot() {
   water = createWater(viewer);
 
   const shared = parseState(location.search);
-  state.rise = shared ? shared.rise : 70;
+  state.rise = shared?.rise ?? 70;
 
   ui = initUI({
     onSearch: handleSearch,
