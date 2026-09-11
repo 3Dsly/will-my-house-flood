@@ -8,7 +8,7 @@ phone or laptop and lets someone check their own home in under a minute. Anyone
 can fork the repo and host their own free copy.
 
 **Live:** https://3dsly.github.io/will-my-house-flood/
-**Video:** https://www.youtube.com/@UnmarkedFilesArchives
+**Video:** https://youtu.be/Pc2LmfgvHQU
 
 _(Both links may be updated once the repo is published and the video goes live.)_
 

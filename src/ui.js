@@ -21,8 +21,7 @@ export function initUI({ onSearch, onLocate, onRiseChange }) {
     document.querySelectorAll(".presets button[data-rise]")
   );
 
-  // Follow-up (Task 12): replace with the real video URL once confirmed.
-  if (videoLink) videoLink.href = "https://www.youtube.com/@UnmarkedFilesArchives";
+  if (videoLink) videoLink.href = "https://youtu.be/Pc2LmfgvHQU";
 
   function syncPresets(rise) {
     for (const btn of presets) {
