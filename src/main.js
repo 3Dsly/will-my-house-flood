@@ -5,8 +5,9 @@ import { geocodeAddress } from "./geocode.js";
 import { getCurrentLocation } from "./geolocate.js";
 import { sampleGroundElevation } from "./elevation.js";
 import { createGeoid } from "./geoid.js";
-import { waterEllipsoidHeight, mslElevation } from "./datum.js";
+import { waterEllipsoidHeight, mslElevation, floodDepth } from "./datum.js";
 import { createWater } from "./water.js";
+import { createDepthMarker } from "./depthmarker.js";
 import { formatReadout } from "./readout.js";
 import { parseState, writeState } from "./urlstate.js";
 import { initUI } from "./ui.js";
@@ -16,6 +17,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 let viewer = null;
 let water = null;
+let marker = null;
 let geoid = null; // null => treat undulation N as 0
 let ui = null;
 
@@ -24,6 +26,7 @@ const state = {
   lon: null,
   rise: 70,
   groundMslM: null, // MSL metres at (lat, lon); may stay null if unavailable
+  groundEllipM: null, // same point, raw WGS84-ellipsoidal height (for the water/marker frame)
   N: 0, // cached geoid undulation for the current point
   placeName: null
 };
@@ -49,7 +52,17 @@ function rebuildWaterThrottled() {
   requestAnimationFrame(() => {
     waterPending = false;
     if (state.lat === null) return;
-    water.setHeight(waterEllipsoidHeight(state.rise, state.N));
+    const waterM = waterEllipsoidHeight(state.rise, state.N);
+    water.setHeight(waterM);
+    if (state.groundEllipM === null) return;
+    marker.update(
+      state.lat,
+      state.lon,
+      state.groundEllipM,
+      waterM,
+      floodDepth(state.rise, state.groundMslM)
+    );
+    marker.show();
   });
 }
 
@@ -95,11 +108,27 @@ function flyTo(lon, lat) {
   });
 }
 
-function applyLocation(lat, lon, name) {
-  return runApplyLocation(lat, lon, name).catch((e) => console.error(e));
+// Used when the geocoder could only narrow the address down to an area
+// (a rectangle), not an exact point — frame the whole uncertain area
+// top-down instead of confidently zooming in on a possibly-wrong spot.
+function flyToRectangle(rectangle) {
+  return new Promise((resolve) => {
+    viewer.camera.flyTo({
+      destination: rectangle,
+      duration: 2,
+      complete: resolve,
+      cancel: resolve
+    });
+  });
 }
 
-async function runApplyLocation(lat, lon, name) {
+function applyLocation({ lat, lon, name, rectangle = null, precise = true }) {
+  return runApplyLocation({ lat, lon, name, rectangle, precise }).catch((e) =>
+    console.error(e)
+  );
+}
+
+async function runApplyLocation({ lat, lon, name, rectangle, precise }) {
   const seq = ++applySeq;
   ui.setBusy(true);
   ui.setStatus("");
@@ -110,10 +139,19 @@ async function runApplyLocation(lat, lon, name) {
   // Clear the stale value and say so, otherwise a slider drag in that window
   // renders "<newPlace> is about <oldElevation> m..." — confidently wrong.
   state.groundMslM = null;
+  state.groundEllipM = null;
+  marker.hide();
   ui.setReadout("Measuring elevation…");
 
   try {
-    await flyTo(lon, lat);
+    if (precise || !rectangle) {
+      await flyTo(lon, lat);
+    } else {
+      await flyToRectangle(rectangle);
+      ui.setStatus(
+        "Couldn't pin down the exact address — showing the general area. Pan/zoom to find your house."
+      );
+    }
     if (seq !== applySeq) return;
 
     const terrainReady = await whenTerrainReady();
@@ -146,10 +184,17 @@ async function runApplyLocation(lat, lon, name) {
     const groundMslM =
       rawEllip === null ? null : mslElevation(rawEllip, state.N);
     state.groundMslM = groundMslM;
+    state.groundEllipM = rawEllip;
 
+    const waterM = waterEllipsoidHeight(state.rise, state.N);
     water.setCenter(lat, lon);
-    water.setHeight(waterEllipsoidHeight(state.rise, state.N));
+    water.setHeight(waterM);
     water.show();
+
+    if (rawEllip !== null) {
+      marker.update(lat, lon, rawEllip, waterM, floodDepth(state.rise, groundMslM));
+      marker.show();
+    }
 
     ui.setReadout(
       formatReadout({ groundMslM, riseM: state.rise, placeName: name })
@@ -177,7 +222,13 @@ async function handleSearch(query) {
     ui.setStatus("Couldn't find that place — try adding a city or country.");
     return;
   }
-  applyLocation(hit.lat, hit.lon, hit.name);
+  applyLocation({
+    lat: hit.lat,
+    lon: hit.lon,
+    name: hit.name,
+    rectangle: hit.rectangle,
+    precise: hit.precise
+  });
 }
 
 async function handleLocate() {
@@ -201,7 +252,7 @@ async function handleLocate() {
   } finally {
     ui.setBusy(false);
   }
-  applyLocation(loc.lat, loc.lon, "Your location");
+  applyLocation({ lat: loc.lat, lon: loc.lon, name: "Your location" });
 }
 
 function handleRiseChange(rise) {
@@ -249,6 +300,7 @@ async function boot() {
   }
 
   water = createWater(viewer);
+  marker = createDepthMarker(viewer);
 
   const shared = parseState(location.search);
   state.rise = shared?.rise ?? 70;
@@ -265,7 +317,7 @@ async function boot() {
   }
 
   if (shared) {
-    applyLocation(shared.lat, shared.lon, "Shared location");
+    applyLocation({ lat: shared.lat, lon: shared.lon, name: "Shared location" });
   }
 }
 
