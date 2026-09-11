@@ -12,6 +12,9 @@
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <script>window.CESIUM_BASE_URL = "https://cdnjs.cloudflare.com/ajax/libs/cesium/1.124.0/";</script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/cesium/1.124.0/Widgets/widgets.css" rel="stylesheet">
   <link href="style.css" rel="stylesheet">
@@ -20,38 +23,94 @@
   <div id="cesium" role="application" aria-label="3D globe"></div>
   <div id="credit"></div>
 
-  <div id="tokenError" class="panel error" hidden>
+  <div id="tokenError" class="error" hidden>
     <h1>Couldn't load the globe</h1>
     <p>This site needs a valid Cesium ion token in <code>config.js</code>.
        See the <a href="https://github.com/3Dsly/will-my-house-flood#readme">README</a>.</p>
   </div>
 
-  <header id="searchBar" class="panel">
-    <h1>Will my house flood?</h1>
-    <form id="searchForm">
-      <input id="addressInput" type="text" placeholder="Enter an address or place" autocomplete="off" enterkeyhint="search">
-      <button id="searchBtn" type="submit">Search</button>
-      <button id="locateBtn" type="button">Use my location</button>
-    </form>
-    <p id="statusLine" class="status" aria-live="polite"></p>
-  </header>
+  <aside id="sidebar" class="sidebar">
+    <header class="brand">
+      <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M4 20c2.5-2.6 5.5-2.6 8 0s5.5 2.6 8 0 5.5-2.6 8 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M4 25c2.5-2.6 5.5-2.6 8 0s5.5 2.6 8 0 5.5-2.6 8 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity="0.5"/>
+        <path d="M16 3v13.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M16 3 20.5 10 11.5 10Z" fill="currentColor"/>
+      </svg>
+      <div>
+        <h1>Will my house flood?</h1>
+        <p class="brand__tagline">See your address under a risen sea</p>
+      </div>
+    </header>
 
-  <footer id="controls" class="panel">
-    <div class="presets" role="group" aria-label="Rise presets">
-      <button type="button" data-rise="1">1 m</button>
-      <button type="button" data-rise="10">10 m</button>
-      <button type="button" data-rise="30">30 m</button>
-      <button type="button" data-rise="70">70 m</button>
+    <div class="sidebar__scroll">
+      <section id="searchBar" class="panel-section">
+        <form id="searchForm">
+          <div class="field">
+            <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4.3-4.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <input id="addressInput" type="text" placeholder="Enter an address or place" autocomplete="off" enterkeyhint="search">
+          </div>
+          <div class="button-row">
+            <button id="searchBtn" type="submit" class="btn btn--primary">Search</button>
+            <button id="locateBtn" type="button" class="btn btn--ghost">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Use my location
+            </button>
+          </div>
+        </form>
+        <p id="statusLine" class="status" aria-live="polite"></p>
+      </section>
+
+      <section id="controls" class="panel-section">
+        <div class="section-heading">
+          <span>Sea-level rise</span>
+          <span class="rise-readout"><span id="riseOut">70</span>&nbsp;m</span>
+        </div>
+        <input id="riseInput" type="range" min="0" max="70" step="1" value="70" aria-label="Sea-level rise in metres">
+        <div class="rise-ticks" aria-hidden="true"><span>0</span><span>10</span><span>30</span><span>50</span><span>70 m</span></div>
+        <div class="presets" role="group" aria-label="Rise presets">
+          <button type="button" data-rise="1">1 m</button>
+          <button type="button" data-rise="10">10 m</button>
+          <button type="button" data-rise="30">30 m</button>
+          <button type="button" data-rise="70">70 m</button>
+        </div>
+      </section>
+
+      <section id="resultPanel" class="panel-section result" hidden>
+        <div id="heroWrap" class="hero" hidden>
+          <img id="heroImg" alt="Rendered 3D view of the searched location under the simulated water level">
+          <span class="hero__badge"><span id="heroBadgeValue">70</span>&nbsp;m</span>
+        </div>
+        <p id="placeName" class="place-name"></p>
+        <div id="statusPill" class="status-pill">
+          <span class="status-pill__dot" aria-hidden="true"></span>
+          <span id="statusPillText"></span>
+        </div>
+        <div class="stat-row">
+          <div class="stat">
+            <span class="stat__label">Ground elevation</span>
+            <span id="statElevation" class="stat__value">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat__label">Sea-level rise</span>
+            <span id="statRise" class="stat__value">—</span>
+          </div>
+          <div class="stat stat--depth">
+            <span class="stat__label">Est. depth</span>
+            <span id="statDepth" class="stat__value">—</span>
+          </div>
+        </div>
+      </section>
+
+      <p id="readout" class="readout-note" aria-live="polite">Search a place to begin.</p>
     </div>
-    <label class="slider">
-      Sea-level rise: <output id="riseOut">70</output> m
-      <input id="riseInput" type="range" min="0" max="70" step="1" value="70">
-    </label>
-    <p id="readout" class="readout" aria-live="polite">Search a place to begin.</p>
-    <button id="aboutBtn" type="button" class="link">About &amp; limitations</button>
-  </footer>
 
-  <div id="aboutPanel" class="panel about" hidden>
+    <footer class="sidebar__footer">
+      <button id="aboutBtn" type="button" class="link">About &amp; limitations</button>
+    </footer>
+  </aside>
+
+  <div id="aboutPanel" class="about" hidden>
     <button id="aboutClose" type="button" class="close" aria-label="Close">&times;</button>
     <h2>About this map</h2>
     <p>This is a <strong>&ldquo;bathtub&rdquo; model</strong>: it fills every point of

@@ -8,7 +8,7 @@ import { createGeoid } from "./geoid.js";
 import { waterEllipsoidHeight, mslElevation, floodDepth } from "./datum.js";
 import { createWater } from "./water.js";
 import { createDepthMarker } from "./depthmarker.js";
-import { formatReadout } from "./readout.js";
+import { buildResult } from "./readout.js";
 import { parseState, writeState } from "./urlstate.js";
 import { initUI } from "./ui.js";
 
@@ -54,6 +54,9 @@ function rebuildWaterThrottled() {
     if (state.lat === null) return;
     const waterM = waterEllipsoidHeight(state.rise, state.N);
     water.setHeight(waterM);
+    ui.showResult(
+      buildResult({ groundMslM: state.groundMslM, riseM: state.rise, placeName: state.placeName })
+    );
     if (state.groundEllipM === null) return;
     marker.update(
       state.lat,
@@ -64,6 +67,47 @@ function rebuildWaterThrottled() {
     );
     marker.show();
   });
+}
+
+// A snapshot of the settled 3D view, shown as the result panel's hero
+// image — the same rendered scene, just captured as a still rather than
+// left live behind the panel. Waits for imagery tiles to finish streaming
+// in (capped at 8s — flat/unloaded tiles otherwise made for a dull grey
+// snapshot), then two rAF ticks so the frame with the latest water/marker
+// has actually been drawn before reading pixels back.
+function captureHero(seq) {
+  const grab = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (seq !== applySeq) return;
+        try {
+          ui.setHero(viewer.scene.canvas.toDataURL("image/jpeg", 0.82));
+        } catch (e) {
+          console.warn("hero snapshot failed", e);
+        }
+      });
+    });
+  };
+  if (viewer.scene.globe.tilesLoaded) {
+    grab();
+    return;
+  }
+  let settled = false;
+  let settle = null;
+  const finish = () => {
+    if (settled) return;
+    settled = true;
+    remove();
+    clearTimeout(timer);
+    clearTimeout(settle);
+    grab();
+  };
+  const remove = viewer.scene.globe.tileLoadProgressEvent.addEventListener(
+    // count can dip to 0 between LOD refinement passes, not just at the
+    // very end, so debounce a beat before treating it as "settled".
+    (count) => { if (count === 0) { clearTimeout(settle); settle = setTimeout(finish, 500); } }
+  );
+  const timer = setTimeout(finish, 8000);
 }
 
 // --- terrain readiness (mandatory fix #1) ------------------------------
@@ -141,7 +185,8 @@ async function runApplyLocation({ lat, lon, name, rectangle, precise }) {
   state.groundMslM = null;
   state.groundEllipM = null;
   marker.hide();
-  ui.setReadout("Measuring elevation…");
+  ui.hideResult();
+  ui.setNote("Measuring elevation…");
 
   try {
     if (precise || !rectangle) {
@@ -196,9 +241,8 @@ async function runApplyLocation({ lat, lon, name, rectangle, precise }) {
       marker.show();
     }
 
-    ui.setReadout(
-      formatReadout({ groundMslM, riseM: state.rise, placeName: name })
-    );
+    ui.showResult(buildResult({ groundMslM, riseM: state.rise, placeName: name }));
+    captureHero(seq);
     writeStateThrottled();
   } finally {
     if (seq === applySeq) ui.setBusy(false);
@@ -258,14 +302,7 @@ async function handleLocate() {
 function handleRiseChange(rise) {
   state.rise = rise;
   if (state.lat === null) return; // slider still moves before a location is set
-  ui.setReadout(
-    formatReadout({
-      groundMslM: state.groundMslM,
-      riseM: rise,
-      placeName: state.placeName
-    })
-  );
-  rebuildWaterThrottled();
+  rebuildWaterThrottled(); // also re-runs ui.showResult() with the new rise
   writeStateThrottled();
 }
 
@@ -279,15 +316,13 @@ async function boot() {
     // card. Leaving #searchBar/#controls up would be a silent dead page.
     console.error(err);
     document.getElementById("tokenError").hidden = false;
-    document.getElementById("searchBar").hidden = true;
-    document.getElementById("controls").hidden = true;
+    document.getElementById("sidebar").hidden = true;
     return;
   }
 
   window.__viewer = viewer; // for manual poking during dev
   document.getElementById("tokenError").hidden = true;
-  document.getElementById("searchBar").hidden = false;
-  document.getElementById("controls").hidden = false;
+  document.getElementById("sidebar").hidden = false;
 
   // Geoid grid — optional. On any failure keep geoid = null and use N = 0.
   try {

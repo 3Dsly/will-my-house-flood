@@ -9,6 +9,9 @@ export async function createViewer(containerId, ionToken) {
     terrain: Cesium.Terrain.fromWorldTerrain(),
     baseLayer: false, // only the explicit IonImageryProvider below loads (no default world imagery on top)
     creditContainer: document.getElementById("credit"), // move the ion attribution out from under #controls
+    // Needed for scene.canvas.toDataURL() (the result panel's hero snapshot)
+    // to reliably read back real pixels instead of a blank/black canvas.
+    contextOptions: { webgl: { preserveDrawingBuffer: true } },
     baseLayerPicker: false,
     geocoder: false,
     timeline: false,
