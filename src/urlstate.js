@@ -15,10 +15,6 @@ export function buildQuery({ lat, lon, rise }) {
   return `?lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}&rise=${Math.round(rise)}`;
 }
 
-export function readState() {
-  return parseState(typeof location !== "undefined" ? location.search : "");
-}
-
 export function writeState(state) {
   if (typeof history !== "undefined") history.replaceState(null, "", buildQuery(state));
 }

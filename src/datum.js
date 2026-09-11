@@ -1,6 +1,3 @@
-// Cesium terrain heights are ~geoid (MSL); Cesium geometry `height` is ellipsoidal.
-// Convert only the water surface; the depth readout works directly in the MSL frame.
-
 /** Ellipsoidal height to place the water surface at, given rise and local geoid undulation N. */
 export function waterEllipsoidHeight(riseMeters, geoidUndulationMeters) {
   return riseMeters + geoidUndulationMeters;

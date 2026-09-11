@@ -22,7 +22,13 @@ export async function createViewer(containerId, ionToken) {
   });
 
   // Aerial imagery from ion World Imagery.
-  const imagery = await Cesium.IonImageryProvider.fromAssetId(3);
+  let imagery;
+  try {
+    imagery = await Cesium.IonImageryProvider.fromAssetId(3);
+  } catch (e) {
+    viewer.destroy();
+    throw e;
+  }
   viewer.imageryLayers.addImageryProvider(imagery);
 
   viewer.scene.globe.depthTestAgainstTerrain = true;

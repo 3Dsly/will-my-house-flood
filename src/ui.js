@@ -80,6 +80,7 @@ export function initUI({ onSearch, onLocate, onRiseChange }) {
   aboutClose.addEventListener("click", closeAbout);
 
   return {
+    focusAddress() { addressInput.focus(); },
     setReadout(text) {
       readout.textContent = text;
     },

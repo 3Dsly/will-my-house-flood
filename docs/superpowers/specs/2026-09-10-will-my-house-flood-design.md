@@ -105,6 +105,8 @@ ellipsoid**. These differ by the geoid undulation *N*, which ranges roughly
 of metres wrong in many places — the same trap documented in
 `C:\Users\sdeme\Videos\sea-level-cesium\README.md`.
 
+> **As-built correction (2026-09-10):** Cesium World Terrain is WGS84-ellipsoid-referenced, not geoid. The readout subtracts the geoid undulation N (`src/datum.js` `mslElevation`); only that one sentence of this section was wrong. The water-surface height (`rise + N`) is unchanged.
+
 **Fix:** bundle a compact EGM96 grid and look *N* up locally (no network call).
 
 - Candidate: `egm96-universal` (MIT, browser-capable, ~2 MB 15-arc-minute grid)

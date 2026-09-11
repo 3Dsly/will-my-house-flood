@@ -147,6 +147,7 @@ async function runApplyLocation(lat, lon, name) {
       rawEllip === null ? null : mslElevation(rawEllip, state.N);
     state.groundMslM = groundMslM;
 
+    water.setCenter(lat, lon);
     water.setHeight(waterEllipsoidHeight(state.rise, state.N));
     water.show();
 
@@ -195,6 +196,7 @@ async function handleLocate() {
       copy[err && err.message] ||
         "Couldn't get your location — try again or type an address."
     );
+    ui.focusAddress();
     return;
   } finally {
     ui.setBusy(false);
