@@ -581,8 +581,12 @@ input:focus-visible {
     bottom: max(var(--gutter), env(safe-area-inset-bottom));
     width: auto;
     max-width: none;
-    max-height: min(72vh, 640px);
+    /* Leave most of the screen as globe — this is a map app, not a form. */
+    max-height: min(46vh, 420px);
   }
+  /* The hero is a snapshot of the map directly beneath it — redundant
+     weight on a screen that's mostly map already. Keep it desktop-only. */
+  .hero { display: none; }
   .brand { padding: 16px 16px 12px; }
   .sidebar__scroll { padding: 4px 16px 8px; }
   .sidebar__footer { padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
