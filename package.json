@@ -1,9 +1,9 @@
 {
-  "name": "will-my-house-flood",
+  "name": "how-deep-here",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Type your address, see it under a risen sea. Companion app for the 'When All The Ice Melts' video.",
+  "description": "Explore sea-level rise at your location with an animated, precisely scaled two-metre human comparison.",
   "scripts": {
     "test": "node --test",
     "serve": "python -m http.server 8080"

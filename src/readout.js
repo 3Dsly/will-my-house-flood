@@ -31,5 +31,6 @@ export function buildResult({ groundMslM, riseM, placeName }) {
   const note = status === "underwater"
     ? `At a sea-level rise of ${riseM} m, ${who} would be about ${depthM} m underwater.`
     : `At a sea-level rise of ${riseM} m, ${who} would stay about ${depthM} m above the new sea level.`;
-  return { available: true, placeName: who, elevationM, riseM, depthM, status, note };
+  return { available: true, placeName: who, elevationM, riseM, depthM, status, note,
+    rawElevationM: groundMslM, rawDepthM: rawDepth };
 }

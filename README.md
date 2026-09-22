@@ -1,113 +1,55 @@
-# Will My House Flood?
+# How Deep Here?
 
-Type an address and watch the 3D globe fly there, then see it sitting under a
-sea-level rise you choose. A readout tells you how far underwater — or above —
-that exact spot would be. It is a companion to the short film
-**"When All The Ice Melts"**: one link in the video description that opens on any
-phone or laptop and lets someone check their own home in under a minute. Anyone
-can fork the repo and host their own free copy.
+If all Earth’s land ice melted, where would you stand?
 
-**Live:** https://3dsly.github.io/will-my-house-flood/
-**Video:** https://youtu.be/Pc2LmfgvHQU
+**Public app:** https://3dsly.github.io/will-my-house-flood/
 
-_(Both links may be updated once the repo is published and the video goes live.)_
+**Companion film:** https://youtu.be/Pc2LmfgvHQU
 
-## How it works
+Enter an address or use device location to compare local ground elevation with a selected sea-level rise from 0 to 70 metres.
 
-It is a static [CesiumJS](https://cesium.com/platform/cesiumjs/) page — no build
-step, no server, no backend. It uses the **Cesium ion free tier** for world
-terrain and aerial imagery, plus ion's geocoder to turn an address into
-coordinates. A translucent blue water surface is drawn at the height you pick on
-the slider. Because Cesium places geometry against the WGS84 ellipsoid while its
-terrain heights are referenced to mean sea level, the page ships a small bundled
-**EGM96 geoid grid** and looks the local undulation up offline to convert
-between the two, so the waterline lands in the right place.
+- Underwater: a 2 m person stands on the ground beneath animated water and soft sun rays.
+- Above water: the person stands on solid land, with a ruler measuring down the cliff to the sea.
+- One pixels-per-metre scale drives the person, ruler and waterline. A 6 m depth is exactly three person heights; a 30 m clearance is exactly fifteen.
+- The cliff is a schematic cross-section, not reconstructed local terrain.
+- Desktop and phone layouts, pause motion, reduced-motion support, keyboard-accessible About dialog, and shareable location URLs.
+
+The opening scene is explicitly labelled as an illustrative example. Searching replaces it with a terrain-based result. `?example=dry` opens the illustrative 100 m elevation / +70 m sea-level case.
 
 ## Run locally
 
-```sh
-cp config.example.js config.js
-# paste a free Cesium ion token into config.js
-#   from https://cesium.com/ion  ->  Access Tokens  ->  default token
-python -m http.server 8080        # or any static file server
-# open http://localhost:8080
-```
-
-`npm test` runs the logic unit tests (Node 18+). The Cesium and UI parts are
-verified in a browser, not in the test suite.
-
-## Deploy your own
-
-1. **Fork** this repo.
-2. Put your own Cesium ion token in `config.js` (see *Run locally* above).
-3. Repo **Settings ▸ Pages ▸ Source: GitHub Actions**.
-4. Push to `main`. The included workflow (`.github/workflows/pages.yml`) uploads
-   the repo root as-is and deploys it — no build.
-
-Your site will be at `https://<you>.github.io/will-my-house-flood/`.
-
-The ion token is a public client-side token by design, but you should still
-**restrict it in the ion dashboard** to your Pages domain and to just the assets
-this app uses: Cesium World Terrain, Bing / world aerial imagery, and the
-geocoder.
-
-## Swap the imagery to a keyless source (optional)
-
-The default aerial imagery counts against your ion imagery quota. To drop ion
-imagery entirely and use OpenStreetMap tiles instead, replace this line in
-`src/viewer.js`:
-
-```js
-const imagery = await Cesium.IonImageryProvider.fromAssetId(3);
-```
-
-with:
-
-```js
-const imagery = new Cesium.OpenStreetMapImageryProvider({
-  url: "https://tile.openstreetmap.org/"
-});
-```
-
-Trade-off: no aerial photography (you get the OSM map style), but zero ion
-imagery quota used. Terrain and the geocoder still use ion.
-
-## Limitations
-
-- **Bathtub model.** Water fills every point below the chosen line in view,
-  whether or not the ocean could physically reach it (inland basins, areas
-  behind higher ground or levees will over-flood). It is not a hydrological or
-  storm-surge model.
-- **Timescale removed.** +70 m is the "all land ice melts" end state; it says
-  nothing about *when*. Real near-term rise this century is on the order of
-  ~0.3–1 m.
-- **Terrain accuracy** is whatever Cesium World Terrain has for that spot —
-  good in cities, coarser in remote terrain. Local flood defences, sea walls,
-  and drainage are not represented.
-- **Geoid approximation** — waterline height is good to about a metre, fine for
-  a slider readout, not for planning decisions.
-
-## Tests
+This is a static JavaScript app with no build step.
 
 ```sh
+python -m http.server 8080 --bind 127.0.0.1
+# Open http://localhost:8080/
 npm test
 ```
 
-Only the pure logic modules are unit-tested: the vertical-datum math, the EGM96
-geoid grid lookup, the readout text builder, and the URL deep-link state
-parsing/serialisation. The Cesium viewer, the geocoder, terrain elevation
-sampling, the water surface, and the DOM wiring are verified manually in a
-browser — there is no headless-browser harness.
+`config.js` contains the existing public Cesium ion client token. For a fork, use your own client token from Cesium ion and restrict its assets and allowed origins appropriately. Do not put private API secrets into client files.
 
-## Credits
+## Elevation and scale
 
-- [CesiumJS](https://cesium.com/platform/cesiumjs/) and
-  [Cesium ion](https://cesium.com/ion/) — terrain, aerial imagery, and geocoding.
-- EGM96 geoid data via [GeographicLib](https://geographiclib.sourceforge.io/) /
-  U.S. NGA — public domain.
-- [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors — used
-  only if you switch to the keyless imagery option above.
+The app retains Cesium terrain sampling, address geocoding and the bundled EGM96 geoid grid. Terrain samples use WGS84 ellipsoidal heights. The local geoid undulation N converts those to mean sea level:
 
-## License
+- ground MSL elevation = terrain ellipsoid height − N
+- water ellipsoid height = selected sea-level rise + N
+- signed local water depth = selected rise − ground MSL elevation
 
-[MIT](LICENSE).
+Full-precision depth drives the visualization; labels round separately. When elevation or its datum correction is unavailable, the app does not present a computed local depth.
+
+## Deployment
+
+Pushes to `main` run the tests, stage only the public app files, and deploy through GitHub Pages. The existing repository URL is preserved so older links continue to work.
+
+For a fork, set **Settings → Pages → Source → GitHub Actions**, configure your Cesium client token, and update the canonical sharing URL in `index.html`.
+
+## Scope and privacy
+
+This is a simplified elevation comparison, not a flood-risk assessment. It does not model ocean connectivity, storm surge, drainage, coastal defences or future terrain changes. +70 m is an illustrative all-land-ice-melt scenario without a prediction date. The person is a 2 m reference, not an average adult height.
+
+Address queries go to Cesium ion and OpenStreetMap Nominatim. Device location requires the visitor’s permission. Coordinates appear in the URL for sharing. There is no app-owned database or analytics service.
+
+## Verification
+
+`npm test` covers datum conversion, geoid lookup, readouts, shared URLs, and exact underwater/above-water scale ratios at phone and desktop sizes. Browser checks cover address lookup, slider transitions, dialog, responsive layout and motion controls.
