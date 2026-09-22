@@ -54,3 +54,14 @@ Address queries go to Cesium ion and OpenStreetMap Nominatim. Coordinates appear
 ## Verification
 
 `npm test` covers datum conversion, geoid lookup, readouts, shared URLs, and exact underwater/above-water scale ratios at phone and desktop sizes. Browser checks cover address lookup, slider transitions, dialog, responsive layout and motion controls.
+
+## Science and visitor guide
+
+The main page includes a companion-video link and expandable usage, ice-sheet, calculation, accuracy and tool explanations.
+
+- The +70 m setting is a rounded educational scenario (approximately 230 ft), consistent with the [USGS all-glaciers-melt FAQ](https://www.usgs.gov/faqs/how-would-sea-level-change-if-all-glaciers-melted).
+- [NSIDC](https://nsidc.org/learn/parts-cryosphere/ice-sheets) quotes approximately 58 m for Antarctica and 7.4 m for Greenland. These separate estimates total 65.4 m; they are not an exact partition of the 70 m scenario. Smaller glaciers do not account for that entire difference.
+- Heights use the EGM96 geoid as an approximate mean-sea-level reference, with bilinear interpolation of the bundled 15-arc-minute grid. Datum consistency and a precisely scaled drawing do not establish survey-grade accuracy.
+- Real local sea-level change is not uniform. Regional gravity, land motion and ocean effects are outside this comparison, as are thermal expansion and physical flood connectivity.
+
+Sources checked 22 September 2026. The interface credits Cesium/ion, Nominatim/OpenStreetMap, EGM96/GeographicLib-format data, browser technologies, OpenAI Codex development assistance and GitHub Pages hosting.
