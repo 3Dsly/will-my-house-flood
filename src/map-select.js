@@ -2,10 +2,10 @@ import { createTapTracker } from './map-tap.js';
 
 export function initMapSelection(viewer,{onSelect,onStatus}) {
   const canvas=viewer.scene.canvas;
-  const toggle=document.getElementById('mapPickToggle');
-  const hint=document.getElementById('mapHint');
-  const center=document.getElementById('mapCenter');
-  let enabled=false,pin=null;
+  let pin=null;
+  canvas.style.cursor="crosshair";
+  canvas.tabIndex=0;
+  canvas.setAttribute("aria-label","Interactive globe. Use arrow keys to explore, plus or minus to zoom, and Enter to measure the center.");
   function pick(position) {
     // Pick terrain directly: scene.pickPosition could select the simulated water instead.
     const ray=viewer.camera.getPickRay(position);
@@ -20,14 +20,7 @@ export function initMapSelection(viewer,{onSelect,onStatus}) {
     pin=viewer.entities.add({position:Cesium.Cartesian3.fromDegrees(lon,lat),point:{pixelSize:13,color:Cesium.Color.fromCssColorString('#f5a84f'),outlineColor:Cesium.Color.WHITE,outlineWidth:3,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}});
     viewer.scene.requestRender();
   }
-  toggle.addEventListener('click',()=>{
-    enabled=!enabled;toggle.setAttribute('aria-pressed',String(enabled));
-    toggle.textContent=enabled?'Tap to measure: on':'Select a place';
-    canvas.style.cursor=enabled?'crosshair':'';
-    hint.textContent=enabled?'Pinch or use + / − to zoom. Tap a point to measure it.':'Drag to explore. Choose “Select a place” to tap and measure.';
-  });
   const tracker=createTapTracker(e=>{
-    if(!enabled)return;
     const rect=canvas.getBoundingClientRect();
     if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)return;
     pick(new Cesium.Cartesian2(e.clientX-rect.left,e.clientY-rect.top));
@@ -36,7 +29,15 @@ export function initMapSelection(viewer,{onSelect,onStatus}) {
   window.addEventListener('pointermove',tracker.move,{passive:true});
   window.addEventListener('pointerup',tracker.up,{passive:true});
   window.addEventListener('pointercancel',tracker.cancel,{passive:true});
-  center.addEventListener('click',()=>pick(new Cesium.Cartesian2(canvas.clientWidth/2,canvas.clientHeight/2)));
+  canvas.addEventListener('keydown',e=>{
+    const keys=['Enter',' ','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-'];
+    if(!keys.includes(e.key))return;
+    e.preventDefault();
+    if(e.key==='Enter'||e.key===' ')pick(new Cesium.Cartesian2(canvas.clientWidth/2,canvas.clientHeight/2));
+    else if(e.key==='+'||e.key==='=')document.getElementById('mapZoomIn').click();
+    else if(e.key==='-')document.getElementById('mapZoomOut').click();
+    else {viewer.camera.cancelFlight();const angle=Math.min(.08,Math.max(.00001,viewer.camera.positionCartographic.height/6378137*.1));const method={ArrowLeft:'rotateLeft',ArrowRight:'rotateRight',ArrowUp:'rotateUp',ArrowDown:'rotateDown'}[e.key];viewer.camera[method](angle);}
+  });
   for(const [id,direction] of [['mapZoomIn',1],['mapZoomOut',-1]]) {
     const button=document.getElementById(id);button.disabled=false;
     button.addEventListener('click',()=>{
@@ -47,6 +48,5 @@ export function initMapSelection(viewer,{onSelect,onStatus}) {
   }
   // Double tap/click belongs to map interaction; avoid Cesium's entity tracking action.
   viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
-  toggle.disabled=false;center.disabled=false;
   return {setPin};
 }

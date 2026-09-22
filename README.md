@@ -6,13 +6,13 @@ If all Earth’s land ice melted, where would you stand?
 
 **Companion film:** https://youtu.be/Pc2LmfgvHQU
 
-Enter an address, choose a point on the globe, or use device location to compare local ground elevation with a selected sea-level rise from 0 to 70 metres.
+Enter an address or tap a point on the globe to compare local ground elevation with a selected sea-level rise from 0 to 70 metres.
 
 - Underwater: a 2 m person stands on the ground beneath animated water and soft sun rays.
 - Above water: the person stands on solid land, with a ruler measuring down the cliff to the sea.
 - One pixels-per-metre scale drives the person, ruler and waterline. A 6 m depth is exactly three person heights; a 30 m clearance is exactly fifteen.
 - The cliff is a schematic cross-section, not reconstructed local terrain.
-- Select a place on the globe: zoom with pinch or + / −, enable **Select a place**, then tap/click the terrain. **Measure center** is an accessible alternative. Dragging or pinching does not trigger a measurement, and selecting a point preserves the camera view.
+- Tap or click the globe directly to measure: zoom with pinch or + / −. Keyboard users can focus the globe, use arrow keys to explore, and press Enter to measure its center. Dragging or pinching does not trigger a measurement, and selecting a point preserves the camera view.
 - Desktop and phone layouts, pause motion, reduced-motion support, keyboard-accessible About dialog, and shareable location URLs.
 
 The opening scene is explicitly labelled as an illustrative example. Searching replaces it with a terrain-based result. `?example=dry` opens the illustrative 100 m elevation / +70 m sea-level case.
@@ -41,7 +41,7 @@ Full-precision depth drives the visualization; labels round separately. When ele
 
 ## Deployment
 
-Pushes to `main` run the tests, stage only the public app files, and deploy through GitHub Pages. The existing repository URL is preserved so older links continue to work.
+Pushes to `main` run the tests, stage only the public app files, version the complete JavaScript module graph and stylesheet using the release commit, and deploy through GitHub Pages. The existing repository URL is preserved so older links continue to work.
 
 For a fork, set **Settings → Pages → Source → GitHub Actions**, configure your Cesium client token, and update the canonical sharing URL in `index.html`.
 
@@ -49,7 +49,7 @@ For a fork, set **Settings → Pages → Source → GitHub Actions**, configure 
 
 This is a simplified elevation comparison, not a flood-risk assessment. It does not model ocean connectivity, storm surge, drainage, coastal defences or future terrain changes. +70 m is an illustrative all-land-ice-melt scenario without a prediction date. The person is a 2 m reference, not an average adult height.
 
-Address queries go to Cesium ion and OpenStreetMap Nominatim. Device location requires the visitor’s permission. Coordinates appear in the URL for sharing. There is no app-owned database or analytics service.
+Address queries go to Cesium ion and OpenStreetMap Nominatim. Coordinates appear in the URL for sharing. There is no app-owned database or analytics service.
 
 ## Verification
 

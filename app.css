@@ -9,3 +9,5 @@
 .map-actions{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}.map-actions button{font-size:12px;padding:8px 10px;min-height:42px;flex:1}.map-actions button[aria-pressed="true"]{background:#147f8f;color:white;border-color:#147f8f}.map-zoom{position:absolute;right:10px;top:75px;display:grid;gap:5px}.map-zoom button{font-size:24px;padding:3px;width:44px;height:44px;background:#fffef8ee}.map-caption #mapHint{font-size:11px;color:#3d6172;line-height:1.5}.map-caption strong{display:block;margin-top:12px}.map-caption #placeName{overflow-wrap:anywhere}@media(max-width:800px){.map-card{max-height:none}#cesium{height:320px}}
 
 .map-shortcut{display:inline-block;font-size:13px;padding:12px 0 2px}#cesium{scroll-margin-top:15px}
+
+.controls{grid-template-columns:minmax(0,3fr) minmax(130px,1fr)}.map-caption strong{margin-top:4px}.map-caption #mapHint{margin-top:0}#cesium canvas:focus-visible{outline:3px solid #f5a84f;outline-offset:-4px}@media(max-width:480px){.controls{grid-template-columns:minmax(0,1fr) 110px;gap:15px}.slider-block{grid-column:auto}.stat{padding-left:10px}.stat strong{font-size:23px}.stat>span{font-size:11px}}
