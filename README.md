@@ -6,12 +6,13 @@ If all Earth’s land ice melted, where would you stand?
 
 **Companion film:** https://youtu.be/Pc2LmfgvHQU
 
-Enter an address or use device location to compare local ground elevation with a selected sea-level rise from 0 to 70 metres.
+Enter an address, choose a point on the globe, or use device location to compare local ground elevation with a selected sea-level rise from 0 to 70 metres.
 
 - Underwater: a 2 m person stands on the ground beneath animated water and soft sun rays.
 - Above water: the person stands on solid land, with a ruler measuring down the cliff to the sea.
 - One pixels-per-metre scale drives the person, ruler and waterline. A 6 m depth is exactly three person heights; a 30 m clearance is exactly fifteen.
 - The cliff is a schematic cross-section, not reconstructed local terrain.
+- Select a place on the globe: zoom with pinch or + / −, enable **Select a place**, then tap/click the terrain. **Measure center** is an accessible alternative. Dragging or pinching does not trigger a measurement, and selecting a point preserves the camera view.
 - Desktop and phone layouts, pause motion, reduced-motion support, keyboard-accessible About dialog, and shareable location URLs.
 
 The opening scene is explicitly labelled as an illustrative example. Searching replaces it with a terrain-based result. `?example=dry` opens the illustrative 100 m elevation / +70 m sea-level case.
