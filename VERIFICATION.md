@@ -20,3 +20,12 @@ Removed device-location shortcut, selection-mode toggle, Measure center button, 
 
 ## Scope
 Browser phone viewport testing is not a physical-device performance test. Results remain approximate terrain-based elevation comparisons, not a hydrological flood assessment.
+
+
+## Educational content update — 22 September 2026
+
+- All 35 existing tests passed; no calculation or animation code changed.
+- Staged app checked at 390 x 844 and 1440 x 1000 with all explanatory sections expanded: no horizontal overflow.
+- Phone screenshot inspected: video call-to-action, reading order, ice-sheet cards, worked example and nested technical notes fit.
+- About dialog closes with Escape and returns focus to its trigger. Browser reported no page errors.
+- USGS and NSIDC figures verified against their pages; 70 m corrected to approximately 230 ft. Height conversion checked against code and GeographicLib documentation.
