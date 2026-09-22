@@ -11,6 +11,7 @@ import { createDepthMarker } from "./depthmarker.js";
 import { buildResult } from "./readout.js";
 import { parseState, writeState } from "./urlstate.js";
 import { initUI } from "./ui.js";
+import { initMapSelection } from "./map-select.js";
 
 const cfg = window.APP_CONFIG || {};
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -20,6 +21,7 @@ let water = null;
 let marker = null;
 let geoid = null; // null => treat undulation N as 0
 let ui = null;
+let mapSelection = null;
 
 const state = {
   lat: null,
@@ -31,6 +33,7 @@ const state = {
   placeName: null
 };
 let applySeq = 0; // guards against a stale applyLocation overwriting a newer one
+let lookupSeq = 0; // a map selection supersedes an outstanding address/device lookup
 let warnedNoGeoid = false; // one-time warning when converting without a geoid grid
 
 // --- rAF throttles (one pending frame max) ------------------------------
@@ -125,19 +128,21 @@ function flyToRectangle(rectangle) {
   });
 }
 
-function applyLocation({ lat, lon, name, rectangle = null, precise = true }) {
-  return runApplyLocation({ lat, lon, name, rectangle, precise }).catch((e) =>
+function applyLocation({ lat, lon, name, rectangle = null, precise = true, keepView = false }) {
+  ++lookupSeq;
+  return runApplyLocation({ lat, lon, name, rectangle, precise, keepView }).catch((e) =>
     console.error(e)
   );
 }
 
-async function runApplyLocation({ lat, lon, name, rectangle, precise }) {
+async function runApplyLocation({ lat, lon, name, rectangle, precise, keepView }) {
   const seq = ++applySeq;
   ui.setBusy(true);
   ui.setStatus("");
   state.lat = lat;
   state.lon = lon;
   state.placeName = name;
+  mapSelection?.setPin(lat,lon);
   // The elevation is unknown until the fly-to + terrain sample finish (~2 s+).
   // Clear the stale value and say so, otherwise a slider drag in that window
   // renders "<newPlace> is about <oldElevation> m..." — confidently wrong.
@@ -148,7 +153,9 @@ async function runApplyLocation({ lat, lon, name, rectangle, precise }) {
   ui.setNote("Measuring elevation…");
 
   try {
-    if (precise || !rectangle) {
+    if (keepView) {
+      viewer.camera.cancelFlight();
+    } else if (precise || !rectangle) {
       await flyTo(lon, lat);
     } else {
       await flyToRectangle(rectangle);
@@ -210,6 +217,7 @@ async function runApplyLocation({ lat, lon, name, rectangle, precise }) {
 
 // --- UI callbacks --------------------------------------------------------
 async function handleSearch(query) {
+  const lookup = ++lookupSeq;
   ui.setStatus("");
   ui.setBusy(true);
   let hit;
@@ -219,8 +227,9 @@ async function handleSearch(query) {
     console.error(err);
     hit = null;
   } finally {
-    ui.setBusy(false);
+    if (lookup === lookupSeq) ui.setBusy(false);
   }
+  if (lookup !== lookupSeq) return;
   if (!hit) {
     ui.setStatus("Couldn't find that place — try adding a city or country.");
     return;
@@ -235,12 +244,14 @@ async function handleSearch(query) {
 }
 
 async function handleLocate() {
+  const lookup = ++lookupSeq;
   ui.setStatus("");
   ui.setBusy(true);
   let loc;
   try {
     loc = await getCurrentLocation();
   } catch (err) {
+    if (lookup !== lookupSeq) return;
     const copy = {
       "geolocation-denied": "Location access was denied — type an address instead.",
       "geolocation-unavailable": "Location isn't available — type an address instead.",
@@ -253,8 +264,9 @@ async function handleLocate() {
     ui.focusAddress();
     return;
   } finally {
-    ui.setBusy(false);
+    if (lookup === lookupSeq) ui.setBusy(false);
   }
+  if (lookup !== lookupSeq) return;
   applyLocation({ lat: loc.lat, lon: loc.lon, name: "Your location" });
 }
 
@@ -302,6 +314,7 @@ async function boot() {
 
   water = createWater(viewer);
   marker = createDepthMarker(viewer);
+  mapSelection = initMapSelection(viewer,{onSelect:applyLocation,onStatus:text=>ui.setStatus(text)});
 
   const shared = parseState(location.search);
   state.rise = shared?.rise ?? 70;

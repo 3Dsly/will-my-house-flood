@@ -5,3 +5,7 @@
 @media(max-width:800px){.map-card{display:flex}#cesium{height:210px;flex:none}.map-caption{padding:12px}.map-caption p{margin:6px 0}.map-card{max-height:330px}}
 
 .about{inset:0;transform:none;margin:auto;border:1px solid #cad8df;max-height:85vh;overflow:auto;box-shadow:0 20px 90px #031d3633}.about::backdrop{background:#031d3699}.about:not([open]){display:none}dialog button{min-width:44px}#aboutTitle{padding-right:40px}
+
+.map-actions{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}.map-actions button{font-size:12px;padding:8px 10px;min-height:42px;flex:1}.map-actions button[aria-pressed="true"]{background:#147f8f;color:white;border-color:#147f8f}.map-zoom{position:absolute;right:10px;top:75px;display:grid;gap:5px}.map-zoom button{font-size:24px;padding:3px;width:44px;height:44px;background:#fffef8ee}.map-caption #mapHint{font-size:11px;color:#3d6172;line-height:1.5}.map-caption strong{display:block;margin-top:12px}.map-caption #placeName{overflow-wrap:anywhere}@media(max-width:800px){.map-card{max-height:none}#cesium{height:320px}}
+
+.map-shortcut{display:inline-block;font-size:13px;padding:12px 0 2px}#cesium{scroll-margin-top:15px}
