@@ -1,8 +1,7 @@
-// src/main.js — orchestrator: wires viewer, geoid, geocoder, geolocation,
+// src/main.js — orchestrator: wires viewer, geoid, geocoder,
 // elevation sampling, datum math, the water surface and the readout together.
 import { createViewer } from "./viewer.js";
 import { geocodeAddress } from "./geocode.js";
-import { getCurrentLocation } from "./geolocate.js";
 import { sampleGroundElevation } from "./elevation.js";
 import { createGeoid } from "./geoid.js";
 import { waterEllipsoidHeight, mslElevation, floodDepth } from "./datum.js";
@@ -33,7 +32,7 @@ const state = {
   placeName: null
 };
 let applySeq = 0; // guards against a stale applyLocation overwriting a newer one
-let lookupSeq = 0; // a map selection supersedes an outstanding address/device lookup
+let lookupSeq = 0; // a map selection supersedes an outstanding address lookup
 let warnedNoGeoid = false; // one-time warning when converting without a geoid grid
 
 // --- rAF throttles (one pending frame max) ------------------------------
@@ -56,7 +55,7 @@ function rebuildWaterThrottled() {
     waterPending = false;
     if (state.lat === null) return;
     const waterM = waterEllipsoidHeight(state.rise, state.N);
-    water.setHeight(waterM);
+    if (geoid) water.setHeight(waterM); else water.hide();
     ui.showResult(
       buildResult({ groundMslM: state.groundMslM, riseM: state.rise, placeName: state.placeName })
     );
@@ -189,7 +188,7 @@ async function runApplyLocation({ lat, lon, name, rectangle, precise, keepView }
     if (!geoid && !warnedNoGeoid) {
       warnedNoGeoid = true;
       console.warn(
-        "geoid grid unavailable — elevation readout may be off by up to ~100 m"
+        "geoid grid unavailable — local depth calculation disabled"
       );
     }
     const groundMslM =
@@ -200,7 +199,7 @@ async function runApplyLocation({ lat, lon, name, rectangle, precise, keepView }
     const waterM = waterEllipsoidHeight(state.rise, state.N);
     water.setCenter(lat, lon);
     water.setHeight(waterM);
-    water.show();
+    if (geoid) water.show(); else water.hide();
 
     if (rawEllip !== null && groundMslM !== null) {
       marker.update(lat, lon, rawEllip, waterM, floodDepth(state.rise, groundMslM));
@@ -210,6 +209,13 @@ async function runApplyLocation({ lat, lon, name, rectangle, precise, keepView }
     ui.showResult(buildResult({ groundMslM, riseM: state.rise, placeName: name }));
 
     writeStateThrottled();
+  } catch (error) {
+    if (seq !== applySeq) return;
+    console.warn('Location measurement failed',error);
+    state.groundMslM=null;state.groundEllipM=null;
+    marker.hide();water.hide();
+    ui.showResult(buildResult({groundMslM:null,riseM:state.rise,placeName:name}));
+    ui.setStatus('Could not measure that location. Please try another point or search again.');
   } finally {
     if (seq === applySeq) ui.setBusy(false);
   }
@@ -243,33 +249,6 @@ async function handleSearch(query) {
   });
 }
 
-async function handleLocate() {
-  const lookup = ++lookupSeq;
-  ui.setStatus("");
-  ui.setBusy(true);
-  let loc;
-  try {
-    loc = await getCurrentLocation();
-  } catch (err) {
-    if (lookup !== lookupSeq) return;
-    const copy = {
-      "geolocation-denied": "Location access was denied — type an address instead.",
-      "geolocation-unavailable": "Location isn't available — type an address instead.",
-      "geolocation-failed": "Couldn't get your location — try again or type an address."
-    };
-    ui.setStatus(
-      copy[err && err.message] ||
-        "Couldn't get your location — try again or type an address."
-    );
-    ui.focusAddress();
-    return;
-  } finally {
-    if (lookup === lookupSeq) ui.setBusy(false);
-  }
-  if (lookup !== lookupSeq) return;
-  applyLocation({ lat: loc.lat, lon: loc.lon, name: "Your location" });
-}
-
 function handleRiseChange(rise) {
   state.rise = rise;
   if (state.lat === null) return; // slider still moves before a location is set
@@ -281,7 +260,6 @@ function handleRiseChange(rise) {
 async function boot() {
   ui = initUI({
     onSearch: handleSearch,
-    onLocate: handleLocate,
     onRiseChange: handleRiseChange
   });
   try {

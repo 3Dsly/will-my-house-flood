@@ -20,8 +20,10 @@ export function buildResult({ groundMslM, riseM, placeName }) {
   if (groundMslM === null || groundMslM === undefined || !Number.isFinite(groundMslM)) {
     return {
       available: false,
+      placeName: who,
+      riseM,
       note: `${who}: ground elevation is unavailable here, so the depth can't be computed. ` +
-            `The water shown is a ${riseM} m sea-level rise.`
+            `The selected scenario is a ${riseM} m sea-level rise.`
     };
   }
   const elevationM = Math.round(groundMslM);

@@ -5,7 +5,7 @@ const ctx = water.getContext('2d'), fg = overlay.getContext('2d');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let paused = reducedMotion.matches, demo = true, depth = 6, elevation = 64, rise = 70;
 if (new URLSearchParams(location.search).get('example') === 'dry') { elevation = 100; depth = -30; }
-let width = 800, height = 390, geometry, frame = 0, elapsed = 0, last = 0;
+let width = 800, height = 390, geometry, frame = 0, elapsed = 0, last = 0, lastDraw = 0;
 const format = n => new Intl.NumberFormat('en', {maximumFractionDigits: 1}).format(n);
 
 function fit() {
@@ -125,28 +125,30 @@ function drawWater(t) {
   // Soft overlapping shafts refract slowly from the surface; only this layer moves.
   ctx.globalCompositeOperation='screen';
   ctx.filter='blur(5px)';
-  for(let i=0;i<15;i++){
-    const origin=width*(.28+i*.035)+Math.sin(t*.22+i)*width*.018;
-    const end=origin+(i-6)*13+Math.sin(t*.17+i*.6)*28;
-    const span=8+(i%4)*8;const reach=surface+(ground-surface)*(.6+(i%3)*.18);
-    const ray=ctx.createLinearGradient(origin,surface,end,reach);ray.addColorStop(0,`rgba(156,224,246,${.035+.02*Math.sin(t*.38+i)})`);ray.addColorStop(.3,'rgba(92,189,227,.045)');ray.addColorStop(1,'rgba(84,170,209,0)');
+  for(let i=0;i<10;i++){
+    const origin=width*(.23+i*.06)+Math.sin(t*.48+i)*width*.035;
+    const end=origin+(i-4)*18+Math.sin(t*.36+i*.6)*42;
+    const span=12+(i%4)*9;const reach=surface+(ground-surface)*(.65+(i%3)*.16);
+    const strength=.09+.055*Math.sin(t*.7+i);
+    const ray=ctx.createLinearGradient(origin,surface,end,reach);ray.addColorStop(0,`rgba(156,224,246,${strength})`);ray.addColorStop(.35,`rgba(92,189,227,${strength*.65})`);ray.addColorStop(1,'rgba(84,170,209,0)');
     ctx.fillStyle=ray;ctx.beginPath();ctx.moveTo(origin-span*.13,surface);ctx.lineTo(origin+span*.13,surface);ctx.lineTo(end+span,reach);ctx.lineTo(end-span,reach);ctx.closePath();ctx.fill();
   }
   ctx.filter='none';
   const glow=ctx.createRadialGradient(width*.53,surface,1,width*.53,surface,width*.6);glow.addColorStop(0,'rgba(169,239,250,.16)');glow.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=glow;ctx.fillRect(0,surface,width,ground-surface);
   ctx.restore();
-  // Surface reflections: narrow waves, with decreasing amplitude into the distance.
-  for(let j=0;j<13;j++){
-    ctx.beginPath();for(let x=0;x<=width+4;x+=4){const y=surface+j*.75+Math.sin(x*.023+t*.65+j*.77)*(1.5+j*.12)+Math.sin(x*.073-t*.48+j)*.8;if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
-    ctx.strokeStyle=`rgba(193,243,253,${.26-j*.015})`;ctx.lineWidth=j<4?1.1:.6;ctx.stroke();
+  // Visible ripples around the fixed datum. Bound their size in very shallow water.
+  const amplitude=Math.min(3.8,Math.max(.15,(ground-surface)*.18));
+  for(let j=0;j<10;j++){
+    ctx.beginPath();for(let x=0;x<=width+4;x+=4){const y=surface+j*amplitude*.3+Math.sin(x*.025+t*1.35+j*.6)*amplitude+Math.sin(x*.066-t*.95+j)*amplitude*.35;if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+    ctx.strokeStyle=`rgba(193,243,253,${.48-j*.036})`;ctx.lineWidth=j<3?1.4:.8;ctx.stroke();
   }
   for(let k=0;k<28;k++){
-    const x=((k*79.71+t*5)% (width+70))-35,y=surface+3+(k%6)*1.7;
-    const a=.12+.16*(.5+.5*Math.sin(t*.8+k*1.6));line(ctx,x,y,x+9+(k%5)*5,y+Math.sin(t+k),`rgba(223,251,255,${a})`,.8);
+    const x=((k*79.71+t*18)% (width+70))-35,y=surface+amplitude+(k%6)*amplitude*.4+Math.sin(t*1.35+x*.025)*amplitude;
+    const a=.2+.35*(.5+.5*Math.sin(t*1.25+k*1.6));line(ctx,x,y,x+9+(k%5)*5,y+Math.sin(t+k),`rgba(223,251,255,${a})`,1.1);
   }
 }
-function tick(now){frame=0;if(paused||document.hidden)return;if(last)elapsed+=Math.min((now-last)/1000,.1);last=now;drawWater(elapsed);frame=requestAnimationFrame(tick);}
-function motion(){cancelAnimationFrame(frame);last=0;$('motionToggle').textContent=paused?'▶  Play water':'Ⅱ  Pause water';$('motionToggle').setAttribute('aria-pressed',String(paused));if(!paused&&!document.hidden)frame=requestAnimationFrame(tick);}
+function tick(now){frame=0;if(paused||document.hidden)return;if(last)elapsed+=Math.min((now-last)/1000,.1);last=now;if(now-lastDraw>=1000/30){drawWater(elapsed);lastDraw=now;}frame=requestAnimationFrame(tick);}
+function motion(){cancelAnimationFrame(frame);last=0;lastDraw=0;$('motionToggle').textContent=paused?'▶  Play water':'Ⅱ  Pause water';$('motionToggle').setAttribute('aria-pressed',String(paused));if(!paused&&!document.hidden)frame=requestAnimationFrame(tick);}
 $('motionToggle').addEventListener('click',()=>{paused=!paused;motion();});
 document.addEventListener('visibilitychange',motion);
 reducedMotion.addEventListener('change',event=>{paused=event.matches;motion();});
@@ -154,17 +156,17 @@ function present(){
   if(demo)$('exampleLabel').textContent=`ILLUSTRATIVE EXAMPLE · GROUND AT ${format(elevation)} M`;
   $('depthHeadline').textContent=depth>0?`${format(depth)} m above your ground`:depth===0?'At the waterline':`${format(-depth)} m above the water`;
   $('comparison').textContent=depth===0?'The scenario sea level meets the ground here.':`${format(Math.abs(depth)/2)} ${Math.abs(depth)===2?'time':'times'} the height of a 2 m person${depth<0?' down to the water':''}`;
-  $('displayElevation').textContent=`${format(elevation)} m`;$('displayDepth').textContent=`${format(Math.abs(depth))} m`;$('depthStatLabel').textContent=depth>0?'Water depth':'Above the water';
+  $('displayElevation').textContent=`${format(elevation)} m`;
   $('surfaceLabel').textContent=`Scenario sea level · +${format(rise)} m`;$('groundCaption').textContent=`Your ground · ${format(elevation)} m elevation`;
   scene.setAttribute('aria-label',`${$('depthHeadline').textContent}. ${$('comparison').textContent} Two metre person drawn to scale.`);fit();
 }
 export function showDepth(result){
   demo=false;$('mapIntro').hidden=true;
-  if(!result.available){scene.style.visibility='hidden';$('depthHeadline').textContent='Elevation unavailable';$('comparison').textContent='Water depth cannot be calculated here.';$('displayElevation').textContent='—';$('displayDepth').textContent='—';return;}
+  if(!result.available){scene.style.visibility='hidden';$('depthHeadline').textContent='Elevation unavailable';$('comparison').textContent='Water depth cannot be calculated here.';$('displayElevation').textContent='—';$('groundCaption').textContent='Ground elevation unavailable';$('surfaceLabel').textContent=`Scenario sea level · +${format(result.riseM)} m`;$('exampleLabel').textContent='YOUR LOCATION · ELEVATION UNAVAILABLE';return;}
   scene.style.visibility='visible';elevation=result.rawElevationM??result.elevationM;rise=result.riseM;depth=result.rawDepthM??rise-elevation;
   $('exampleLabel').textContent='YOUR LOCATION · ESTIMATED ELEVATION';present();
 }
-export function pendingDepth(){demo=false;scene.style.visibility='hidden';$('depthHeadline').textContent='Measuring your location…';$('comparison').textContent='Finding the ground elevation';$('exampleLabel').textContent='YOUR LOCATION';$('displayElevation').textContent='—';$('displayDepth').textContent='—';}
+export function pendingDepth(){demo=false;scene.style.visibility='hidden';$('depthHeadline').textContent='Measuring your location…';$('comparison').textContent='Finding the ground elevation';$('exampleLabel').textContent='YOUR LOCATION';$('displayElevation').textContent='—';$('groundCaption').textContent='Measuring ground elevation…';}
 export function setExampleRise(value){if(!demo)return;rise=value;depth=rise-elevation;present();}
 $('riseInput').addEventListener('input',()=>{setExampleRise(Number($('riseInput').value));$('riseOut').textContent=$('riseInput').value;});
 new ResizeObserver(fit).observe(scene);present();motion();
