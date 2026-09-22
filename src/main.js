@@ -57,7 +57,7 @@ function rebuildWaterThrottled() {
     ui.showResult(
       buildResult({ groundMslM: state.groundMslM, riseM: state.rise, placeName: state.placeName })
     );
-    if (state.groundEllipM === null) return;
+    if (state.groundEllipM === null || state.groundMslM === null) return;
     marker.update(
       state.lat,
       state.lon,
@@ -67,47 +67,6 @@ function rebuildWaterThrottled() {
     );
     marker.show();
   });
-}
-
-// A snapshot of the settled 3D view, shown as the result panel's hero
-// image — the same rendered scene, just captured as a still rather than
-// left live behind the panel. Waits for imagery tiles to finish streaming
-// in (capped at 8s — flat/unloaded tiles otherwise made for a dull grey
-// snapshot), then two rAF ticks so the frame with the latest water/marker
-// has actually been drawn before reading pixels back.
-function captureHero(seq) {
-  const grab = () => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (seq !== applySeq) return;
-        try {
-          ui.setHero(viewer.scene.canvas.toDataURL("image/jpeg", 0.82));
-        } catch (e) {
-          console.warn("hero snapshot failed", e);
-        }
-      });
-    });
-  };
-  if (viewer.scene.globe.tilesLoaded) {
-    grab();
-    return;
-  }
-  let settled = false;
-  let settle = null;
-  const finish = () => {
-    if (settled) return;
-    settled = true;
-    remove();
-    clearTimeout(timer);
-    clearTimeout(settle);
-    grab();
-  };
-  const remove = viewer.scene.globe.tileLoadProgressEvent.addEventListener(
-    // count can dip to 0 between LOD refinement passes, not just at the
-    // very end, so debounce a beat before treating it as "settled".
-    (count) => { if (count === 0) { clearTimeout(settle); settle = setTimeout(finish, 500); } }
-  );
-  const timer = setTimeout(finish, 8000);
 }
 
 // --- terrain readiness (mandatory fix #1) ------------------------------
@@ -194,7 +153,7 @@ async function runApplyLocation({ lat, lon, name, rectangle, precise }) {
     } else {
       await flyToRectangle(rectangle);
       ui.setStatus(
-        "Couldn't pin down the exact address — showing the general area. Pan/zoom to find your house."
+        "Couldn't pin down the exact address — showing the general area. Pan/zoom to inspect the location."
       );
     }
     if (seq !== applySeq) return;
@@ -227,7 +186,7 @@ async function runApplyLocation({ lat, lon, name, rectangle, precise }) {
       );
     }
     const groundMslM =
-      rawEllip === null ? null : mslElevation(rawEllip, state.N);
+      rawEllip === null || !geoid ? null : mslElevation(rawEllip, state.N);
     state.groundMslM = groundMslM;
     state.groundEllipM = rawEllip;
 
@@ -236,13 +195,13 @@ async function runApplyLocation({ lat, lon, name, rectangle, precise }) {
     water.setHeight(waterM);
     water.show();
 
-    if (rawEllip !== null) {
+    if (rawEllip !== null && groundMslM !== null) {
       marker.update(lat, lon, rawEllip, waterM, floodDepth(state.rise, groundMslM));
       marker.show();
     }
 
     ui.showResult(buildResult({ groundMslM, riseM: state.rise, placeName: name }));
-    captureHero(seq);
+
     writeStateThrottled();
   } finally {
     if (seq === applySeq) ui.setBusy(false);
@@ -308,6 +267,11 @@ function handleRiseChange(rise) {
 
 // --- boot --------------------------------------------------------------
 async function boot() {
+  ui = initUI({
+    onSearch: handleSearch,
+    onLocate: handleLocate,
+    onRiseChange: handleRiseChange
+  });
   try {
     viewer = await createViewer("cesium", cfg.ionToken);
   } catch (err) {
@@ -316,7 +280,9 @@ async function boot() {
     // card. Leaving #searchBar/#controls up would be a silent dead page.
     console.error(err);
     document.getElementById("tokenError").hidden = false;
-    document.getElementById("sidebar").hidden = true;
+
+    ui.setStatus("Map unavailable. The animated example still works.");
+    ui.setBusy(true);
     return;
   }
 
@@ -340,15 +306,13 @@ async function boot() {
   const shared = parseState(location.search);
   state.rise = shared?.rise ?? 70;
 
-  ui = initUI({
-    onSearch: handleSearch,
-    onLocate: handleLocate,
-    onRiseChange: handleRiseChange
-  });
+
   ui.setRise(state.rise);
+  ui.setBusy(false);
+  ui.setStatus("");
 
   if (!geoid) {
-    ui.setStatus("Using approximate elevations — geoid data didn't load.");
+    ui.setStatus("Elevation correction data didn't load. Please reload before checking a location.");
   }
 
   if (shared) {

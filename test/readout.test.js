@@ -1,42 +1,30 @@
-import test from "node:test";
-import assert from "node:assert/strict";
-import { formatReadout } from "../src/readout.js";
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { buildResult } from '../src/readout.js';
 
-test("underwater case names the place, today's elevation, and the depth", () => {
-  const s = formatReadout({ groundMslM: 2, riseM: 70, placeName: "Miami Beach" });
-  assert.match(s, /Miami Beach/);
-  assert.match(s, /2 m above sea level/);
-  assert.match(s, /68 m underwater/);
+test('underwater result retains exact depth for the scale drawing', () => {
+  const r=buildResult({groundMslM:64,riseM:70,placeName:'Example'});
+  assert.equal(r.status,'underwater');assert.equal(r.rawDepthM,6);
+  assert.equal(r.rawElevationM,64);assert.match(r.note,/Example.*6 m underwater/);
 });
-
-test("above-water case uses the 'above the new sea level' phrasing", () => {
-  const s = formatReadout({ groundMslM: 1600, riseM: 70, placeName: "Denver" });
-  assert.match(s, /1530 m above the new sea level/);
-  assert.doesNotMatch(s, /underwater/);
+test('fractional elevation is not rounded before drawing the person comparison',()=>{
+  const r=buildResult({groundMslM:69.6,riseM:70});
+  assert.ok(Math.abs(r.rawDepthM-.4)<1e-10);assert.equal(r.status,'underwater');
 });
-
-test("exactly at the line reads as 0 m above, not underwater", () => {
-  const s = formatReadout({ groundMslM: 70, riseM: 70 });
-  assert.match(s, /0 m above the new sea level/);
+test('dry location retains signed depth and positive clearance',()=>{
+  const r=buildResult({groundMslM:1600,riseM:70});
+  assert.equal(r.rawDepthM,-1530);assert.equal(r.depthM,1530);assert.equal(r.status,'safe');
 });
-
-test("null elevation falls back to an honest 'unavailable' line but still states the rise", () => {
-  const s = formatReadout({ groundMslM: null, riseM: 30, placeName: "Somewhere" });
-  assert.match(s, /elevation.*unavailable/i);
-  assert.match(s, /30 m/);
+test('ground at waterline has zero depth',()=>{
+  assert.equal(buildResult({groundMslM:70,riseM:70}).rawDepthM,0);
 });
-
-test("no placeName uses 'This spot'", () => {
-  const s = formatReadout({ groundMslM: 10, riseM: 5 });
-  assert.match(s, /^This spot/);
+test('unavailable or nonfinite elevation never invents a result',()=>{
+  for(const groundMslM of [null,undefined,NaN,Infinity]){
+    const r=buildResult({groundMslM,riseM:70});
+    assert.equal(r.available,false);assert.match(r.note,/unavailable/);
+  }
 });
-
-test("negative elevation reads as 'below sea level', never a minus sign", () => {
-  const nola = formatReadout({ groundMslM: -2, riseM: 70, placeName: "New Orleans" });
-  assert.match(nola, /2 m below sea level/);
-  assert.doesNotMatch(nola, /-/);
-
-  const badwater = formatReadout({ groundMslM: -85, riseM: 10 });
-  assert.match(badwater, /85 m below sea level/);
-  assert.doesNotMatch(badwater, /-/);
+test('below-sea-level ground increases water depth',()=>{
+  const r=buildResult({groundMslM:-85,riseM:10});
+  assert.equal(r.rawDepthM,95);assert.equal(r.elevationM,-85);
 });
