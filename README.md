@@ -8,9 +8,9 @@ If all Earth’s land ice melted, where would you stand?
 
 Enter an address or tap a point on the globe to compare local ground elevation with a selected sea-level rise from 0 to 70 metres.
 
-- Underwater: a 2 m person stands on the ground beneath animated water and soft sun rays.
+- Underwater: a 1.7 m person stands on the ground beneath animated water and soft sun rays.
 - Above water: the person stands on solid land, with a ruler measuring down the cliff to the sea.
-- One pixels-per-metre scale drives the person, ruler and waterline. A 6 m depth is exactly three person heights; a 30 m clearance is exactly fifteen.
+- One pixels-per-metre scale drives the person, ruler and waterline. A 6 m depth is about 3.5 person heights; a 30 m clearance is about 17.6.
 - The cliff is a schematic cross-section, not reconstructed local terrain.
 - Tap or click the globe directly to measure: zoom with pinch or + / −. Keyboard users can focus the globe, use arrow keys to explore, and press Enter to measure its center. Dragging or pinching does not trigger a measurement, and selecting a point preserves the camera view.
 - Desktop and phone layouts, pause motion, reduced-motion support, keyboard-accessible About dialog, and shareable location URLs.
@@ -47,7 +47,7 @@ For a fork, set **Settings → Pages → Source → GitHub Actions**, configure 
 
 ## Scope and privacy
 
-This is a simplified elevation comparison, not a flood-risk assessment. It does not model ocean connectivity, storm surge, drainage, coastal defences or future terrain changes. +70 m is an illustrative all-land-ice-melt scenario without a prediction date. The person is a 2 m reference, not an average adult height.
+This is a simplified elevation comparison, not a flood-risk assessment. It does not model ocean connectivity, storm surge, drainage, coastal defences or future terrain changes. +70 m is an illustrative all-land-ice-melt scenario without a prediction date. The person is a 1.7 m reference, a representative adult reference rather than a universal average height.
 
 Address queries go to Cesium ion and OpenStreetMap Nominatim. Coordinates appear in the URL for sharing. There is no app-owned database or analytics service.
 
