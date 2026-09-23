@@ -1,5 +1,5 @@
 import { distance, updateRiseLabel } from './units.js';
-import { depthGeometry } from './depth-scale.js';
+import { depthGeometry, PERSON_HEIGHT_M } from './depth-scale.js';
 const $ = id => document.getElementById(id);
 const scene = $('depthScene'), water = $('waterCanvas'), overlay = $('scaleCanvas');
 const ctx = water.getContext('2d'), fg = overlay.getContext('2d');
@@ -110,8 +110,8 @@ function drawOverlay() {
   const body=new Path2D('M -3 12 L -3 16 Q -12 17 -13 23 L -17 48 L -15 57 L -12 55 L -12 48 L -8 30 L -8 54 L -6 73 L -6 95 L -9 98 L -9 100 L -2 100 L 0 73 L 2 100 L 9 100 L 9 98 L 6 95 L 6 73 L 8 54 L 8 30 L 12 48 L 12 55 L 15 57 L 17 48 L 13 23 Q 12 17 3 16 L 3 12 Z');fg.fill(body);fg.stroke(body);fg.restore();
   const accent=dry?'#995313':'#f7b66d';
   const bx=px+Math.max(16,ph*.22);line(fg,bx,ground,bx,ground-ph,accent,1.5);line(fg,bx-4,ground,bx+4,ground,accent,1.5);line(fg,bx-4,ground-ph,bx+4,ground-ph,accent,1.5);
-  text(fg,'2 m',bx+8,ground-ph/2-3,dry?'#82460d':'#ffcb8d',12);
-  text(fg,'6.6 ft',bx+8,ground-ph/2+11,dry?'#82460d':'#ffcb8d',10);
+  text(fg,`${PERSON_HEIGHT_M} m`,bx+8,ground-ph/2-3,dry?'#82460d':'#ffcb8d',12);
+  text(fg,'≈5′7″',bx+8,ground-ph/2+11,dry?'#82460d':'#ffcb8d',10);
   if(depth===0){text(fg,'Sea level meets the ground',width/2,35,'#183c56',13,'center');}
 }
 
@@ -157,10 +157,10 @@ reducedMotion.addEventListener('change',event=>{paused=event.matches;motion();})
 function present(){
   if(demo)$('exampleLabel').textContent=`ILLUSTRATIVE EXAMPLE · GROUND AT ${distance(elevation)}`;
   $('depthHeadline').textContent=depth>0?`${distance(depth)} above your ground`:depth===0?'At the waterline':`${distance(-depth)} above the water`;
-  $('comparison').textContent=depth===0?'The scenario sea level meets the ground here.':`${format(Math.abs(depth)/2)} ${Math.abs(depth)===2?'time':'times'} the height of a 2 m (6.6 ft) person${depth<0?' down to the water':''}`;
+  $('comparison').textContent=depth===0?'The scenario sea level meets the ground here.':`${format(Math.abs(depth)/PERSON_HEIGHT_M)} ${Math.abs(depth)===PERSON_HEIGHT_M?'time':'times'} the height of a ${PERSON_HEIGHT_M} m (about 5′7″) person${depth<0?' down to the water':''}`;
   $('displayElevation').textContent=distance(elevation);
   $('surfaceLabel').textContent=`Scenario sea level · +${distance(rise)}`;$('groundCaption').textContent=`Your ground · ${distance(elevation)} elevation`;
-  scene.setAttribute('aria-label',`${$('depthHeadline').textContent}. ${$('comparison').textContent} Two metre person drawn to scale.`);fit();
+  scene.setAttribute('aria-label',`${$('depthHeadline').textContent}. ${$('comparison').textContent} 1.7 metre person drawn to scale.`);fit();
 }
 export function showDepth(result){
   demo=false;$('mapIntro').hidden=true;

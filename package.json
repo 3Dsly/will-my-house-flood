@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Explore sea-level rise at your location with an animated, precisely scaled two-metre human comparison.",
+  "description": "Explore sea-level rise at your location with an animated, precisely scaled 1.7-metre human comparison.",
   "scripts": {
     "test": "node --test",
     "serve": "python -m http.server 8080"
