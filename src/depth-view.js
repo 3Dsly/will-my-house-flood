@@ -1,3 +1,4 @@
+import { distance, updateRiseLabel } from './units.js';
 import { depthGeometry } from './depth-scale.js';
 const $ = id => document.getElementById(id);
 const scene = $('depthScene'), water = $('waterCanvas'), overlay = $('scaleCanvas');
@@ -68,17 +69,17 @@ function drawOverlay() {
     const step = metres <= 8 ? 2 : metres <= 30 ? 5 : metres <=100 ? 10 : Math.pow(10,Math.floor(Math.log10(metres)));
     for(let m=0;m<=metres+.00001;m+=step){
       const y=ground+m*ppm;
-      line(fg,18,y,27,y,'#e5e8df');text(fg,`${format(m)} m`,32,y+(m===0?-7:4),m===0?'#183c56':'#f0eee4',11);
+      line(fg,18,y,27,y,'#e5e8df');text(fg,distance(m),32,y+(m===0?-7:4),m===0?'#183c56':'#f0eee4',11);
       if(m>0&&m<metres){fg.setLineDash([3,5]);line(fg,edge+14,y,width-20,y,'#385f742c');fg.setLineDash([]);}
     }
     line(fg,18,ground,18,surface,'#e2e4d7');
     line(fg,edge+10,surface,width-18,surface,'#d0edf7cc');
-    if(metres%step!==0)text(fg,`${format(metres)} m`,32,surface-7,'#f0eee4',11);
+    if(metres%step!==0)text(fg,distance(metres),32,surface-7,'#f0eee4',11);
     const ax=width-28;line(fg,ax,ground,ax,surface,'#254b64',1.2);
     for(const [y,d] of [[ground,1],[surface,-1]]){line(fg,ax,y,ax-4,y+d*7,'#254b64');line(fg,ax,y,ax+4,y+d*7,'#254b64');}
-    text(fg,`${format(metres)} m`,ax-12,(ground+surface)/2,'#12344a',width<450?15:21,'right');
+    text(fg,distance(metres),ax-12,(ground+surface)/2,'#12344a',width<450?15:21,'right');
     text(fg,'down to water',ax-12,(ground+surface)/2+18,'#254b64',10,'right');
-    text(fg,`Sea level · +${format(rise)} m`,width-18,surface+27,'#e1f4fa',11,'right');
+    text(fg,`Sea level · +${distance(rise)}`,width-18,surface+27,'#e1f4fa',11,'right');
   } else {
   // A fixed, subtly textured ground; no animation on this canvas.
   const soil=fg.createLinearGradient(0,ground,0,height);soil.addColorStop(0,'#203842');soil.addColorStop(1,'#0a1c28');fg.fillStyle=soil;fg.fillRect(0,ground,width,height-ground);
@@ -88,16 +89,16 @@ function drawOverlay() {
   for(let m=0;m<=metres+.001;m+=step){
     const y=ground-m*ppm;if(y<20)continue;
     fg.setLineDash([3,5]);line(fg,62,y,width-20,y,'#a5d4e132');fg.setLineDash([]);
-    line(fg,18,y,27,y,'#ceebf2');text(fg,`${m} m`,32,y+(m===0?-7:4),'#d1e9ee',11);
+    line(fg,18,y,27,y,'#ceebf2');text(fg,distance(m),32,y+(m===0?-7:4),'#d1e9ee',11);
   }
   line(fg,18,ground,18,Math.max(20,surface),'#a2c5d4');
   if(depth>0){
     // This horizontal line is the exact mean water level, independent of ripples.
     line(fg,18,surface,width-18,surface,'#bfe7f0aa');
-    if(depth%step!==0) text(fg,`${format(depth)} m`,32,Math.max(16,surface-8),'#d1e9ee',11);
+    if(depth%step!==0) text(fg,distance(depth),32,Math.max(16,surface-8),'#d1e9ee',11);
     const ax=width-28;line(fg,ax,surface,ax,ground,'#def8ff',1.2);
     for(const [y,d] of [[surface,1],[ground,-1]]){line(fg,ax,y,ax-4,y+d*7,'#def8ff');line(fg,ax,y,ax+4,y+d*7,'#def8ff');}
-    text(fg,`${format(depth)} m`,ax-12,(surface+ground)/2,'#fff',width<450?15:21,'right');
+    text(fg,distance(depth),ax-12,(surface+ground)/2,'#fff',width<450?15:21,'right');
     text(fg,'water depth',ax-12,(surface+ground)/2+18,'#c3e4ee',10,'right');
   }
   }
@@ -109,7 +110,8 @@ function drawOverlay() {
   const body=new Path2D('M -3 12 L -3 16 Q -12 17 -13 23 L -17 48 L -15 57 L -12 55 L -12 48 L -8 30 L -8 54 L -6 73 L -6 95 L -9 98 L -9 100 L -2 100 L 0 73 L 2 100 L 9 100 L 9 98 L 6 95 L 6 73 L 8 54 L 8 30 L 12 48 L 12 55 L 15 57 L 17 48 L 13 23 Q 12 17 3 16 L 3 12 Z');fg.fill(body);fg.stroke(body);fg.restore();
   const accent=dry?'#995313':'#f7b66d';
   const bx=px+Math.max(16,ph*.22);line(fg,bx,ground,bx,ground-ph,accent,1.5);line(fg,bx-4,ground,bx+4,ground,accent,1.5);line(fg,bx-4,ground-ph,bx+4,ground-ph,accent,1.5);
-  text(fg,'2 m',bx+8,ground-ph/2+4,dry?'#82460d':'#ffcb8d',12);
+  text(fg,'2 m',bx+8,ground-ph/2-3,dry?'#82460d':'#ffcb8d',12);
+  text(fg,'6.6 ft',bx+8,ground-ph/2+11,dry?'#82460d':'#ffcb8d',10);
   if(depth===0){text(fg,'Sea level meets the ground',width/2,35,'#183c56',13,'center');}
 }
 
@@ -153,20 +155,21 @@ $('motionToggle').addEventListener('click',()=>{paused=!paused;motion();});
 document.addEventListener('visibilitychange',motion);
 reducedMotion.addEventListener('change',event=>{paused=event.matches;motion();});
 function present(){
-  if(demo)$('exampleLabel').textContent=`ILLUSTRATIVE EXAMPLE · GROUND AT ${format(elevation)} M`;
-  $('depthHeadline').textContent=depth>0?`${format(depth)} m above your ground`:depth===0?'At the waterline':`${format(-depth)} m above the water`;
-  $('comparison').textContent=depth===0?'The scenario sea level meets the ground here.':`${format(Math.abs(depth)/2)} ${Math.abs(depth)===2?'time':'times'} the height of a 2 m person${depth<0?' down to the water':''}`;
-  $('displayElevation').textContent=`${format(elevation)} m`;
-  $('surfaceLabel').textContent=`Scenario sea level · +${format(rise)} m`;$('groundCaption').textContent=`Your ground · ${format(elevation)} m elevation`;
+  if(demo)$('exampleLabel').textContent=`ILLUSTRATIVE EXAMPLE · GROUND AT ${distance(elevation)}`;
+  $('depthHeadline').textContent=depth>0?`${distance(depth)} above your ground`:depth===0?'At the waterline':`${distance(-depth)} above the water`;
+  $('comparison').textContent=depth===0?'The scenario sea level meets the ground here.':`${format(Math.abs(depth)/2)} ${Math.abs(depth)===2?'time':'times'} the height of a 2 m (6.6 ft) person${depth<0?' down to the water':''}`;
+  $('displayElevation').textContent=distance(elevation);
+  $('surfaceLabel').textContent=`Scenario sea level · +${distance(rise)}`;$('groundCaption').textContent=`Your ground · ${distance(elevation)} elevation`;
   scene.setAttribute('aria-label',`${$('depthHeadline').textContent}. ${$('comparison').textContent} Two metre person drawn to scale.`);fit();
 }
 export function showDepth(result){
   demo=false;$('mapIntro').hidden=true;
-  if(!result.available){scene.style.visibility='hidden';$('depthHeadline').textContent='Elevation unavailable';$('comparison').textContent='Water depth cannot be calculated here.';$('displayElevation').textContent='—';$('groundCaption').textContent='Ground elevation unavailable';$('surfaceLabel').textContent=`Scenario sea level · +${format(result.riseM)} m`;$('exampleLabel').textContent='YOUR LOCATION · ELEVATION UNAVAILABLE';return;}
+  if(!result.available){scene.style.visibility='hidden';$('depthHeadline').textContent='Elevation unavailable';$('comparison').textContent='Water depth cannot be calculated here.';$('displayElevation').textContent='—';$('groundCaption').textContent='Ground elevation unavailable';$('surfaceLabel').textContent=`Scenario sea level · +${distance(result.riseM)}`;$('exampleLabel').textContent='YOUR LOCATION · ELEVATION UNAVAILABLE';return;}
   scene.style.visibility='visible';elevation=result.rawElevationM??result.elevationM;rise=result.riseM;depth=result.rawDepthM??rise-elevation;
   $('exampleLabel').textContent='YOUR LOCATION · ESTIMATED ELEVATION';present();
 }
 export function pendingDepth(){demo=false;scene.style.visibility='hidden';$('depthHeadline').textContent='Measuring your location…';$('comparison').textContent='Finding the ground elevation';$('exampleLabel').textContent='YOUR LOCATION';$('displayElevation').textContent='—';$('groundCaption').textContent='Measuring ground elevation…';}
 export function setExampleRise(value){if(!demo)return;rise=value;depth=rise-elevation;present();}
-$('riseInput').addEventListener('input',()=>{setExampleRise(Number($('riseInput').value));$('riseOut').textContent=$('riseInput').value;});
+$('riseInput').addEventListener('input',()=>{setExampleRise(Number($('riseInput').value));updateRiseLabel(Number($('riseInput').value));});
+updateRiseLabel(rise);
 new ResizeObserver(fit).observe(scene);present();motion();

@@ -1,3 +1,4 @@
+import { distance } from './units.js';
 import { floodDepth } from "./datum.js";
 
 // Dry land within this margin of the new sea level reads as "at risk"
@@ -23,7 +24,7 @@ export function buildResult({ groundMslM, riseM, placeName }) {
       placeName: who,
       riseM,
       note: `${who}: ground elevation is unavailable here, so the depth can't be computed. ` +
-            `The selected scenario is a ${riseM} m sea-level rise.`
+            `The selected scenario is a ${distance(riseM)} sea-level rise.`
     };
   }
   const elevationM = Math.round(groundMslM);
@@ -31,8 +32,8 @@ export function buildResult({ groundMslM, riseM, placeName }) {
   const status = statusForDepth(rawDepth);
   const depthM = Math.round(Math.abs(rawDepth));
   const note = status === "underwater"
-    ? `At a sea-level rise of ${riseM} m, ${who} would be about ${depthM} m underwater.`
-    : `At a sea-level rise of ${riseM} m, ${who} would stay about ${depthM} m above the new sea level.`;
+    ? `At a sea-level rise of ${distance(riseM)}, ${who} would be about ${distance(Math.abs(rawDepth))} underwater.`
+    : `At a sea-level rise of ${distance(riseM)}, ${who} would stay about ${distance(Math.abs(rawDepth))} above the new sea level.`;
   return { available: true, placeName: who, elevationM, riseM, depthM, status, note,
     rawElevationM: groundMslM, rawDepthM: rawDepth };
 }
